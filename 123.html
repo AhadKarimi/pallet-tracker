@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>استخراج اطلاعات محصول از وال‌مارت</title>
+    <title>استخراج اطلاعات محصول وال‌مارت</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         * {
@@ -58,7 +58,7 @@
             display: flex;
             flex-wrap: wrap;
             gap: 1rem;
-            margin-bottom: 2.5rem;
+            margin-bottom: 1.5rem;
             background: #f8fafc;
             padding: 1.5rem;
             border-radius: 20px;
@@ -124,6 +124,42 @@
 
         .btn i {
             font-size: 1rem;
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: #0071ce;
+            border: 1px solid #0071ce;
+        }
+
+        .btn-outline:hover {
+            background: #e6f0ff;
+            color: #005bb5;
+        }
+
+        .upload-section {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding: 1rem 1.5rem;
+            background: #f1f5f9;
+            border-radius: 16px;
+            border: 1px dashed #94a3b8;
+        }
+
+        .upload-section label {
+            font-weight: 500;
+            color: #1e293b;
+        }
+
+        .upload-section input[type="file"] {
+            flex: 1;
+            padding: 0.5rem;
+            border: 1px solid #d1d9e6;
+            border-radius: 40px;
+            background: white;
         }
 
         .result-area {
@@ -281,7 +317,25 @@
             padding-top: 1.5rem;
         }
 
-        /* responsive */
+        .alert {
+            padding: 0.8rem 1.2rem;
+            border-radius: 12px;
+            background: #fee2e2;
+            color: #991b1b;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .alert i {
+            font-size: 1.2rem;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
         @media (max-width: 640px) {
             .container {
                 padding: 1.2rem 0.8rem;
@@ -307,6 +361,10 @@
             .btn {
                 justify-content: center;
             }
+            .upload-section {
+                flex-direction: column;
+                align-items: stretch;
+            }
         }
     </style>
 </head>
@@ -315,23 +373,36 @@
 <div class="container">
     <h1><i class="fas fa-box-open"></i> استخراج‌کننده محصول وال‌مارت</h1>
     <div class="sub">
-        با وارد کردن لینک جستجوی وال‌مارت (شامل آیتم‌آیدی)، اطلاعات محصول اول را نمایش می‌دهد.
+        وارد کردن لینک جستجو <strong>یا</strong> آپلود فایل HTML صفحه وال‌مارت
     </div>
 
+    <!-- بخش هشدار در صورت خطا -->
+    <div id="errorAlert" class="alert hidden">
+        <i class="fas fa-circle-exclamation"></i>
+        <span id="errorMessage">خطا در دریافت اطلاعات</span>
+    </div>
+
+    <!-- بخش ورودی لینک -->
     <div class="input-section">
         <div class="input-group">
             <label for="urlInput"><i class="fas fa-link"></i> لینک جستجوی وال‌مارت</label>
             <input type="url" id="urlInput" placeholder="مثلاً https://www.walmart.ca/en/search?q=6000205460099" value="https://www.walmart.ca/en/search?q=6000205460099">
         </div>
-        <button class="btn" id="fetchBtn"><i class="fas fa-magnifying-glass"></i> دریافت اطلاعات</button>
+        <button class="btn" id="fetchBtn"><i class="fas fa-magnifying-glass"></i> دریافت از لینک</button>
+    </div>
+
+    <!-- بخش آپلود فایل -->
+    <div class="upload-section">
+        <label for="fileInput"><i class="fas fa-upload"></i> یا فایل HTML را آپلود کنید:</label>
+        <input type="file" id="fileInput" accept=".html,.htm">
+        <button class="btn btn-outline" id="uploadBtn"><i class="fas fa-file-import"></i> پردازش فایل</button>
     </div>
 
     <div id="resultContainer" class="result-area">
-        <!-- نتیجه به صورت داینامیک در اینجا قرار می‌گیرد -->
         <div class="empty-state">
             <i class="fas fa-cart-plus"></i>
             <h3>محصولی بارگذاری نشده</h3>
-            <p style="margin-top: 0.5rem; color: #94a3b8;">روی دکمه «دریافت اطلاعات» کلیک کنید تا داده‌ها از لینک نمونه یا لینک دلخواه استخراج شوند.</p>
+            <p style="margin-top: 0.5rem; color: #94a3b8;">از لینک یا فایل HTML برای استخراج اطلاعات استفاده کنید.</p>
         </div>
     </div>
 
@@ -342,110 +413,106 @@
 
 <script>
     (function() {
-        // ---- تابع کمکی برای استخراج داده از HTML دریافتی ----
+        // ---- تابع استخراج از المنت ----
+        function extractFromElement(element) {
+            // ---- تصویر ----
+            const imgElement = element.querySelector('img[data-testid="productTileImage"]');
+            let imageUrl = '';
+            if (imgElement) {
+                imageUrl = imgElement.getAttribute('src') || '';
+                if (imageUrl.startsWith('//')) {
+                    imageUrl = 'https:' + imageUrl;
+                }
+            }
+
+            // ---- عنوان ----
+            const titleElement = element.querySelector('[data-automation-id="product-title"]');
+            let title = '';
+            if (titleElement) {
+                title = titleElement.textContent.trim();
+            } else {
+                const linkTitle = element.querySelector('a[link-identifier] span');
+                if (linkTitle) title = linkTitle.textContent.trim();
+            }
+
+            // ---- قیمت ----
+            const priceElement = element.querySelector('[data-automation-id="product-price"]');
+            let price = '';
+            if (priceElement) {
+                const priceSpan = priceElement.querySelector('.b.black');
+                if (priceSpan) {
+                    price = priceSpan.textContent.trim();
+                } else {
+                    price = priceElement.textContent.trim();
+                }
+            }
+
+            // ---- امتیاز و تعداد نظرات ----
+            let rating = '';
+            let reviewCount = '';
+            const ratingContainer = element.querySelector('[data-testid="product-ratings"]');
+            if (ratingContainer) {
+                const ratingValue = ratingContainer.getAttribute('data-value');
+                if (ratingValue) {
+                    const num = parseFloat(ratingValue);
+                    if (!isNaN(num)) rating = num.toFixed(1);
+                }
+            }
+
+            const reviewElement = element.querySelector('[data-testid="product-reviews"]');
+            if (reviewElement) {
+                reviewCount = reviewElement.textContent.trim() || '';
+            }
+
+            // ---- آیتم آیدی ----
+            const itemId = element.getAttribute('data-item-id') || '';
+
+            return {
+                image: imageUrl,
+                title: title || 'بدون عنوان',
+                price: price || '---',
+                rating: rating,
+                reviews: reviewCount,
+                itemId: itemId
+            };
+        }
+
+        // ---- تابع استخراج از HTML ----
         function extractProductData(htmlString) {
             const parser = new DOMParser();
             const doc = parser.parseFromString(htmlString, 'text/html');
 
-            // 1. پیدا کردن اولین product tile (بر اساس data-item-id یا کلاس‌های مشخص)
             const itemStack = doc.querySelector('[data-testid="item-stack"]');
             if (!itemStack) {
-                // تلاش جایگزین: پیدا کردن هر div که شامل data-item-id باشد
                 const fallbackItem = doc.querySelector('[data-item-id]');
                 if (!fallbackItem) return null;
-                // از fallback استفاده می‌کنیم
                 return extractFromElement(fallbackItem);
             }
 
-            // پیدا کردن اولین آیتم در استک (می‌تواند چندین باشد)
             const firstItem = itemStack.querySelector('[data-item-id]');
             if (!firstItem) return null;
 
             return extractFromElement(firstItem);
-
-            // ---- تابع داخلی برای استخراج از یک المنت حاوی داده ----
-            function extractFromElement(element) {
-                // ---- تصویر ----
-                const imgElement = element.querySelector('img[data-testid="productTileImage"]');
-                let imageUrl = '';
-                if (imgElement) {
-                    imageUrl = imgElement.getAttribute('src') || '';
-                    // اگر src ناقص بود، کاملش کن (بعضی وقت‌ها // شروع می‌شود)
-                    if (imageUrl.startsWith('//')) {
-                        imageUrl = 'https:' + imageUrl;
-                    }
-                }
-
-                // ---- عنوان ----
-                const titleElement = element.querySelector('[data-automation-id="product-title"]');
-                let title = '';
-                if (titleElement) {
-                    title = titleElement.textContent.trim();
-                } else {
-                    // fallback: از المنت a با link-identifier
-                    const linkTitle = element.querySelector('a[link-identifier] span');
-                    if (linkTitle) title = linkTitle.textContent.trim();
-                }
-
-                // ---- قیمت ----
-                const priceElement = element.querySelector('[data-automation-id="product-price"]');
-                let price = '';
-                if (priceElement) {
-                    const priceSpan = priceElement.querySelector('.b.black');
-                    if (priceSpan) {
-                        price = priceSpan.textContent.trim();
-                    } else {
-                        // جایگزین
-                        price = priceElement.textContent.trim();
-                    }
-                }
-
-                // ---- امتیاز و تعداد نظرات ----
-                let rating = '';
-                let reviewCount = '';
-                const ratingContainer = element.querySelector('[data-testid="product-ratings"]');
-                if (ratingContainer) {
-                    const ratingValue = ratingContainer.getAttribute('data-value');
-                    if (ratingValue) {
-                        const num = parseFloat(ratingValue);
-                        if (!isNaN(num)) rating = num.toFixed(1);
-                    }
-                }
-
-                const reviewElement = element.querySelector('[data-testid="product-reviews"]');
-                if (reviewElement) {
-                    reviewCount = reviewElement.textContent.trim() || '';
-                }
-
-                // ---- آیتم آیدی ----
-                const itemId = element.getAttribute('data-item-id') || '';
-
-                return {
-                    image: imageUrl,
-                    title: title || 'بدون عنوان',
-                    price: price || '---',
-                    rating: rating,
-                    reviews: reviewCount,
-                    itemId: itemId
-                };
-            }
         }
 
-        // ---- تابع برای نمایش داده در کارت ----
+        // ---- تابع نمایش کارت ----
         function renderProductCard(data) {
             const container = document.getElementById('resultContainer');
+            const alertBox = document.getElementById('errorAlert');
+            alertBox.classList.add('hidden');
+
             if (!data) {
                 container.innerHTML = `
                     <div class="empty-state">
                         <i class="fas fa-triangle-exclamation" style="color: #eab308;"></i>
                         <h3>داده‌ای یافت نشد</h3>
-                        <p style="margin-top: 0.5rem; color: #94a3b8;">ساختار صفحه ممکن است تغییر کرده باشد یا لینک معتبر نیست.</p>
+                        <p style="margin-top: 0.5rem; color: #94a3b8;">ساختار صفحه ممکن است تغییر کرده باشد یا فایل/لینک معتبر نیست.</p>
                     </div>
                 `;
                 return;
             }
 
-            // ساخت ستاره‌های امتیاز (حداکثر 5 ستاره)
+            // ساخت ستاره‌ها
             let starsHtml = '';
             const ratingNum = parseFloat(data.rating) || 0;
             const fullStars = Math.floor(ratingNum);
@@ -489,7 +556,24 @@
             container.innerHTML = cardHtml;
         }
 
-        // ---- تابع اصلی برای دریافت و پردازش ----
+        // ---- نمایش خطا ----
+        function showError(message) {
+            const alertBox = document.getElementById('errorAlert');
+            const errorMsg = document.getElementById('errorMessage');
+            errorMsg.textContent = message || 'خطا در دریافت اطلاعات';
+            alertBox.classList.remove('hidden');
+
+            const container = document.getElementById('resultContainer');
+            container.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-circle-exclamation" style="color: #dc2626;"></i>
+                    <h3>خطا</h3>
+                    <p style="margin-top: 0.5rem; color: #94a3b8;">${message || 'لطفاً روش دیگری را امتحان کنید (آپلود فایل).'}</p>
+                </div>
+            `;
+        }
+
+        // ---- دریافت از لینک با پروکسی‌های مختلف ----
         async function fetchProductFromUrl(url) {
             const container = document.getElementById('resultContainer');
             container.innerHTML = `
@@ -499,45 +583,94 @@
                 </div>
             `;
 
-            try {
-                // پروکسی ساده برای دور زدن CORS (در محیط واقعی ممکن است نیاز به سرور داشته باشد)
-                // استفاده از پروکسی عمومی (برای نمونه)
-                const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-                const response = await fetch(proxyUrl, {
-                    headers: { 'Content-Type': 'application/json' }
-                });
+            // لیست پروکسی‌ها (با اولویت)
+            const proxies = [
+                `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+                `https://corsproxy.io/?${encodeURIComponent(url)}`,
+                `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`
+            ];
 
-                if (!response.ok) {
-                    throw new Error(`خطا در دریافت: ${response.status}`);
+            let lastError = null;
+
+            for (const proxyUrl of proxies) {
+                try {
+                    const response = await fetch(proxyUrl, {
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+
+                    const result = await response.json();
+                    let htmlContent = '';
+
+                    // پروکسی‌های مختلف فرمت متفاوتی دارند
+                    if (result.contents) {
+                        htmlContent = result.contents;
+                    } else if (result.data) {
+                        htmlContent = result.data;
+                    } else if (typeof result === 'string') {
+                        htmlContent = result;
+                    } else {
+                        // تلاش برای پیدا کردن محتوا در هر کلید
+                        for (const key in result) {
+                            if (typeof result[key] === 'string' && result[key].length > 1000) {
+                                htmlContent = result[key];
+                                break;
+                            }
+                        }
+                    }
+
+                    if (!htmlContent || htmlContent.length < 500) {
+                        throw new Error('محتوای دریافتی ناقص است');
+                    }
+
+                    const extractedData = extractProductData(htmlContent);
+                    if (extractedData) {
+                        renderProductCard(extractedData);
+                        return; // موفقیت
+                    } else {
+                        throw new Error('ساختار صفحه قابل تشخیص نیست');
+                    }
+
+                } catch (error) {
+                    lastError = error;
+                    console.warn(`پروکسی ${proxyUrl} ناموفق:`, error.message);
+                    // ادامه با پروکسی بعدی
                 }
-
-                const result = await response.json();
-                if (!result.contents) {
-                    throw new Error('پاسخی از سرور دریافت نشد');
-                }
-
-                const htmlContent = result.contents;
-                const extractedData = extractProductData(htmlContent);
-
-                if (extractedData) {
-                    renderProductCard(extractedData);
-                } else {
-                    // تلاش دوم: گاهی ساختار صفحه متفاوت است، یک روش دیگر
-                    // بعضی صفحات وال‌مارت ممکن است داده‌ها در script باشند، اما اینجا ساده می‌گیریم.
-                    // به عنوان fallback از یک regex ساده برای استخراج استفاده نمی‌کنیم.
-                    renderProductCard(null);
-                }
-
-            } catch (error) {
-                console.error('Error fetching data:', error);
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-circle-exclamation" style="color: #dc2626;"></i>
-                        <h3>خطا در دریافت اطلاعات</h3>
-                        <p style="margin-top: 0.5rem; color: #94a3b8;">${error.message || 'لطفاً اتصال اینترنت خود را بررسی کنید یا لینک دیگری را امتحان کنید.'}</p>
-                    </div>
-                `;
             }
+
+            // اگر همه پروکسی‌ها ناموفق بودند
+            showError('دریافت از لینک ممکن نیست. لطفاً فایل HTML را آپلود کنید. (' + (lastError?.message || 'خطای ناشناخته') + ')');
+        }
+
+        // ---- پردازش فایل آپلود شده ----
+        function processUploadedFile(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const htmlContent = e.target.result;
+                    if (!htmlContent || htmlContent.length < 500) {
+                        showError('فایل انتخاب شده معتبر نیست یا خالی است.');
+                        return;
+                    }
+                    const extractedData = extractProductData(htmlContent);
+                    if (extractedData) {
+                        renderProductCard(extractedData);
+                        // پاک کردن خطاها
+                        document.getElementById('errorAlert').classList.add('hidden');
+                    } else {
+                        showError('ساختار فایل مطابق با صفحه محصول وال‌مارت نیست.');
+                    }
+                } catch (error) {
+                    showError('خطا در خواندن فایل: ' + error.message);
+                }
+            };
+            reader.onerror = function() {
+                showError('خطا در خواندن فایل.');
+            };
+            reader.readAsText(file);
         }
 
         // ---- رویدادها ----
@@ -549,12 +682,10 @@
                 return;
             }
 
-            // اگر لینک شامل فاصله یا کاراکتر اضافی بود، پاکسازی
             try {
                 const urlObj = new URL(rawUrl);
                 fetchProductFromUrl(urlObj.href);
             } catch (_) {
-                // اگر لینک معتبر نبود، سعی می‌کنیم با اصلاح ساده
                 if (!rawUrl.startsWith('http://') && !rawUrl.startsWith('https://')) {
                     rawUrl = 'https://' + rawUrl;
                 }
@@ -562,8 +693,24 @@
                     const urlObj = new URL(rawUrl);
                     fetchProductFromUrl(urlObj.href);
                 } catch (e) {
-                    alert('لینک وارد شده معتبر نیست. لطفاً یک آدرس کامل از وال‌مارت وارد کنید.');
+                    alert('لینک وارد شده معتبر نیست.');
                 }
+            }
+        });
+
+        document.getElementById('uploadBtn').addEventListener('click', function() {
+            const fileInput = document.getElementById('fileInput');
+            if (!fileInput.files || fileInput.files.length === 0) {
+                alert('لطفاً ابتدا یک فایل HTML انتخاب کنید.');
+                return;
+            }
+            processUploadedFile(fileInput.files[0]);
+        });
+
+        // آپلود با انتخاب فایل (خودکار)
+        document.getElementById('fileInput').addEventListener('change', function() {
+            if (this.files && this.files.length > 0) {
+                processUploadedFile(this.files[0]);
             }
         });
 
