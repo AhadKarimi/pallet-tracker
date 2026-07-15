@@ -1,91 +1,175 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fa" dir="rtl">
 <head>
-<meta charset="UTF-8">
-<title>Walmart Product Finder</title>
-
-<style>
-body{
-    font-family:Arial;
-    max-width:700px;
-    margin:30px auto;
-}
-input{
-    width:350px;
-    padding:10px;
-}
-button{
-    padding:10px 20px;
-}
-#result{
-    margin-top:25px;
-}
-img{
-    width:250px;
-    border:1px solid #ccc;
-    padding:5px;
-}
-</style>
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>استخراج‌کننده اطلاعات محصول والمارت</title>
+    <style>
+        body {
+            font-family: Tahoma, Arial, sans-serif;
+            background-color: #f4f6f9;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #0071dc;
+            text-align: center;
+            font-size: 24px;
+        }
+        label {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 8px;
+        }
+        textarea {
+            width: 100%;
+            height: 120px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-family: monospace;
+            font-size: 14px;
+            resize: vertical;
+        }
+        button {
+            background-color: #0071dc;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            font-size: 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 15px;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background-color: #0050a0;
+        }
+        .result-box {
+            margin-top: 25px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-right: 5px solid #28a745;
+            border-radius: 4px;
+            display: none;
+        }
+        .result-item {
+            margin-bottom: 12px;
+            font-size: 15px;
+        }
+        .result-item span {
+            font-weight: bold;
+            color: #555;
+        }
+        .result-item a {
+            color: #0071dc;
+            text-decoration: none;
+        }
+        .result-item a:hover {
+            text-decoration: underline;
+        }
+    </style>
 </head>
 <body>
 
-<h2>Walmart Barcode Search</h2>
-
-<input id="barcode" placeholder="Barcode">
-<button onclick="search()">Search</button>
-
-<div id="result"></div>
+<div class="container">
+    <h1>استخراج اطلاعات لینک والمارت</h1>
+    <p style="text-align: center; color: #666;">کد HTML تگ لینک محصول (مانند نمونه خودتان) را در جعبه زیر قرار دهید:</p>
+    
+    <label for="htmlInput">کد HTML:</label>
+    <textarea id="htmlInput" placeholder='کد <a link-identifier="..." ...> را اینجا وارد کنید...'></textarea>
+    
+    <button onclick="extractData()">استخراج اطلاعات</button>
+    
+    <div id="resultBox" class="result-box">
+        <h3 style="margin-top: 0; color: #28a745;">اطلاعات استخراج شده:</h3>
+        
+        <div class="result-item">
+            <span>شناسه محصول (ID):</span> 
+            <span id="prodId" style="color: #d9534f; font-family: monospace;">-</span>
+        </div>
+        
+        <div class="result-item">
+            <span>عنوان محصول:</span> 
+            <span id="prodTitle" style="color: #111;">-</span>
+        </div>
+        
+        <div class="result-item">
+            <span>لینک مستقیم محصول:</span> 
+            <a id="prodLink" href="#" target="_blank">-</a>
+        </div>
+    </div>
+</div>
 
 <script>
-
-async function search(){
-
-    const barcode=document.getElementById("barcode").value.trim();
-
-    if(barcode=="") return;
-
-    const url="https://www.walmart.ca/en/search?q="+barcode;
-
-    // برای جلوگیری از CORS
-    const proxy="https://api.allorigins.win/raw?url="+encodeURIComponent(url);
-
-    const html=await fetch(proxy).then(r=>r.text());
-
-    const parser=new DOMParser();
-    const doc=parser.parseFromString(html,"text/html");
-
-    //----------------------------------------
-    // Title
-    //----------------------------------------
-
-    const titleElement=doc.querySelector('a[link-identifier] span');
-
-    const title=titleElement?
-        titleElement.textContent.trim():
-        "Not Found";
-
-    //----------------------------------------
-    // Image
-    //----------------------------------------
-
-    let img="";
-
-    const imageElement=doc.querySelector("img");
-
-    if(imageElement){
-        img=imageElement.src;
+function extractData() {
+    const rawHtml = document.getElementById('htmlInput').value;
+    const resultBox = document.getElementById('resultBox');
+    
+    if (!rawHtml.trim()) {
+        alert('لطفا ابتدا کد HTML را وارد کنید.');
+        return;
     }
 
-    //----------------------------------------
+    // ایجاد یک المان فرضی برای پارس کردن آسان کدهای HTML وارد شده
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = rawHtml;
+    
+    // پیدا کردن تگ a درون کد وارد شده
+    const anchorTag = tempDiv.querySelector('a');
+    
+    if (anchorTag) {
+        // ۱. استخراج شناسه محصول (link-identifier)
+        const id = anchorTag.getAttribute('link-identifier') || 'یافت نشد';
+        
+        // ۲. استخراج آدرس href و ساخت لینک کامل والمارت
+        let href = anchorTag.getAttribute('href') || '';
+        let fullLink = href;
+        if (href && href.startsWith('/')) {
+            fullLink = 'https://www.walmart.ca' + href;
+        }
 
-    document.getElementById("result").innerHTML=`
-        <h3>${title}</h3>
-        <img src="${img}">
-    `;
+        // ۳. استخراج متن عنوان (پاک کردن کامنت‌های HTML و فضاهای خالی اضافه)
+        let title = '';
+        const spanTag = anchorTag.querySelector('span');
+        if (spanTag) {
+            title = spanTag.textContent.replace(//g, '').trim();
+        } else {
+            title = anchorTag.textContent.replace(//g, '').trim();
+        }
 
+        // نمایش نتایج در صفحه
+        document.getElementById('prodId').innerText = id;
+        document.getElementById('prodTitle').innerText = title || 'یافت نشد';
+        
+        const linkElement = document.getElementById('prodLink');
+        if (fullLink) {
+            linkElement.href = fullLink;
+            linkElement.innerText = fullLink;
+        } else {
+            linkElement.innerText = 'یافت نشد';
+            linkElement.removeAttribute('href');
+        }
+        
+        // نشان دادن باکس نتیجه
+        resultBox.style.display = 'block';
+    } else {
+        alert('تگ <a> در کدهای وارد شده یافت نشد. لطفاً کد را بررسی کنید.');
+        resultBox.style.display = 'none';
+    }
 }
-
 </script>
 
 </body>
