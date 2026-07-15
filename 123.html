@@ -169,6 +169,16 @@
             border-color: #15803d;
         }
 
+        .btn-danger {
+            background: #dc2626;
+            border-color: #dc2626;
+        }
+
+        .btn-danger:hover {
+            background: #b91c1c;
+            border-color: #b91c1c;
+        }
+
         .upload-section {
             display: flex;
             flex-wrap: wrap;
@@ -344,8 +354,6 @@
         .alert {
             padding: 0.8rem 1.2rem;
             border-radius: 12px;
-            background: #fee2e2;
-            color: #991b1b;
             margin-bottom: 1rem;
             display: flex;
             align-items: center;
@@ -356,9 +364,19 @@
             font-size: 1.2rem;
         }
 
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
         .alert-success {
             background: #dcfce7;
             color: #166534;
+        }
+
+        .alert-info {
+            background: #dbeafe;
+            color: #1e40af;
         }
 
         .hidden {
@@ -378,6 +396,29 @@
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
+        }
+
+        .iframe-container {
+            background: #f8fafc;
+            border-radius: 16px;
+            padding: 1rem;
+            margin: 1rem 0;
+            border: 1px solid #e2e8f0;
+        }
+
+        .iframe-container iframe {
+            width: 100%;
+            height: 600px;
+            border: none;
+            border-radius: 12px;
+            background: white;
+        }
+
+        .iframe-controls {
+            display: flex;
+            gap: 1rem;
+            margin-top: 0.5rem;
+            flex-wrap: wrap;
         }
 
         @media (max-width: 640px) {
@@ -413,6 +454,9 @@
                 flex-direction: column;
                 text-align: center;
             }
+            .iframe-container iframe {
+                height: 400px;
+            }
         }
     </style>
 </head>
@@ -421,16 +465,18 @@
 <div class="container">
     <h1><i class="fas fa-box-open"></i> استخراج‌کننده محصول وال‌مارت</h1>
     <div class="sub">
-        <i class="fas fa-arrow-right"></i> دو روش برای دریافت اطلاعات
+        <i class="fas fa-arrow-right"></i> سه روش برای دریافت اطلاعات
     </div>
 
     <!-- راهنمای استفاده -->
     <div class="info-box">
         <i class="fas fa-lightbulb"></i>
         <div>
-            <span class="step">روش اول:</span> لینک را وارد کرده و دکمه دریافت را بزنید.
+            <span class="step">روش اول:</span> لینک را وارد کرده و دکمه دریافت را بزنید (از آی‌فریم استفاده می‌شود).
             <br>
-            <span class="step">روش دوم:</span> اگر روش اول کار نکرد، صفحه را با <kbd>Ctrl+S</kbd> (ویندوز) یا <kbd>Cmd+S</kbd> (مک) ذخیره کرده و فایل را آپلود کنید.
+            <span class="step">روش دوم:</span> صفحه وال‌مارت را با <kbd>Ctrl+S</kbd> ذخیره کرده و فایل را آپلود کنید.
+            <br>
+            <span class="step">روش سوم:</span> لینک را در آی‌فریم باز کرده و دکمه استخراج را بزنید.
         </div>
     </div>
 
@@ -447,6 +493,26 @@
             <input type="url" id="urlInput" placeholder="مثلاً https://www.walmart.ca/en/search?q=6000205460099" value="https://www.walmart.ca/en/search?q=6000205460099">
         </div>
         <button class="btn" id="fetchBtn"><i class="fas fa-magnifying-glass"></i> دریافت از لینک</button>
+        <button class="btn btn-outline" id="openFrameBtn"><i class="fas fa-window-maximize"></i> باز در آی‌فریم</button>
+    </div>
+
+    <!-- آی‌فریم -->
+    <div id="iframeContainer" class="iframe-container hidden">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
+            <span style="font-weight: 600; color: #1e293b;"><i class="fas fa-globe"></i> صفحه وال‌مارت در آی‌فریم</span>
+            <div class="iframe-controls">
+                <button class="btn btn-success" id="extractFromFrameBtn" style="padding: 0.4rem 1rem; height: auto; font-size: 0.85rem;">
+                    <i class="fas fa-download"></i> استخراج از آی‌فریم
+                </button>
+                <button class="btn btn-danger" id="closeFrameBtn" style="padding: 0.4rem 1rem; height: auto; font-size: 0.85rem; background: #dc2626; border-color: #dc2626;">
+                    <i class="fas fa-times"></i> بستن
+                </button>
+            </div>
+        </div>
+        <iframe id="walmartFrame" src="about:blank"></iframe>
+        <div style="margin-top: 0.5rem; font-size: 0.8rem; color: #64748b;">
+            <i class="fas fa-info-circle"></i> صبر کنید تا صفحه کامل بارگذاری شود، سپس دکمه استخراج را بزنید.
+        </div>
     </div>
 
     <!-- بخش آپلود فایل -->
@@ -460,7 +526,7 @@
         <div class="empty-state">
             <i class="fas fa-cart-plus"></i>
             <h3>محصولی بارگذاری نشده</h3>
-            <p style="margin-top: 0.5rem; color: #94a3b8;">از لینک یا فایل HTML برای استخراج اطلاعات استفاده کنید.</p>
+            <p style="margin-top: 0.5rem; color: #94a3b8;">از یکی از روش‌های بالا برای استخراج اطلاعات استفاده کنید.</p>
         </div>
     </div>
 
@@ -638,117 +704,59 @@
             container.innerHTML = cardHtml;
         }
 
-        // ---- نمایش خطا ----
-        function showError(message, isSuccess = false) {
+        // ---- نمایش پیام ----
+        function showMessage(message, type = 'error') {
             const alertBox = document.getElementById('errorAlert');
             const errorMsg = document.getElementById('errorMessage');
-            errorMsg.textContent = message || 'خطا در دریافت اطلاعات';
-            alertBox.className = 'alert' + (isSuccess ? ' alert-success' : '');
+            errorMsg.textContent = message;
+            alertBox.className = 'alert alert-' + type;
             alertBox.classList.remove('hidden');
 
-            if (!isSuccess) {
-                const container = document.getElementById('resultContainer');
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-circle-exclamation" style="color: #dc2626;"></i>
-                        <h3>خطا</h3>
-                        <p style="margin-top: 0.5rem; color: #94a3b8;">
-                            ${message || 'لطفاً روش دوم (آپلود فایل) را امتحان کنید.'}
-                            <br>
-                            <span style="font-size: 0.9rem; color: #0071ce;">
-                                <i class="fas fa-info-circle"></i> 
-                                صفحه را با <kbd>Ctrl+S</kbd> (ویندوز) یا <kbd>Cmd+S</kbd> (مک) ذخیره کنید.
-                            </span>
-                        </p>
-                    </div>
-                `;
+            if (type === 'success') {
+                setTimeout(() => {
+                    alertBox.classList.add('hidden');
+                }, 5000);
             }
         }
 
-        // ---- دریافت از لینک با روش جدید ----
-        async function fetchProductFromUrl(url) {
-            const container = document.getElementById('resultContainer');
-            const btn = document.getElementById('fetchBtn');
-            const originalText = btn.innerHTML;
-
-            // نمایش لودینگ
-            btn.innerHTML = '<span class="loading-spinner"></span> در حال دریافت...';
-            btn.disabled = true;
-
-            container.innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-spinner fa-pulse" style="color: #0071ce;"></i>
-                    <h3>در حال دریافت اطلاعات...</h3>
-                    <p style="margin-top: 0.5rem; color: #94a3b8;">در حال اتصال به وال‌مارت</p>
-                </div>
-            `;
-
+        // ---- استخراج از آی‌فریم ----
+        function extractFromIframe() {
+            const iframe = document.getElementById('walmartFrame');
             try {
-                // روش جدید: استفاده از fetch با mode: 'no-cors' و سپس پردازش
-                // اما بهتر است از iframe یا روش‌های دیگر استفاده کنیم
-                // در اینجا از یک روش جایگزین استفاده می‌کنیم: دریافت از طریق سرور پروکسی با timeout
-
-                const proxyUrls = [
-                    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-                    `https://corsproxy.io/?${encodeURIComponent(url)}`
-                ];
-
-                let htmlContent = null;
-                let lastError = null;
-
-                for (const proxyUrl of proxyUrls) {
-                    try {
-                        const controller = new AbortController();
-                        const timeoutId = setTimeout(() => controller.abort(), 15000);
-
-                        const response = await fetch(proxyUrl, {
-                            signal: controller.signal,
-                            headers: {
-                                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-                                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-                            }
-                        });
-
-                        clearTimeout(timeoutId);
-
-                        if (!response.ok) {
-                            throw new Error(`HTTP ${response.status}`);
-                        }
-
-                        htmlContent = await response.text();
-                        if (htmlContent && htmlContent.length > 1000) {
-                            break; // موفقیت
-                        }
-                    } catch (error) {
-                        lastError = error;
-                        console.warn(`پروکسی ${proxyUrl} ناموفق:`, error.message);
-                    }
-                }
-
-                if (!htmlContent || htmlContent.length < 1000) {
-                    throw new Error('محتوای کافی دریافت نشد. لطفاً از روش آپلود فایل استفاده کنید.');
-                }
-
+                const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                const htmlContent = iframeDoc.documentElement.outerHTML;
                 const extractedData = extractProductData(htmlContent);
+                
                 if (extractedData && extractedData.title && extractedData.title !== 'بدون عنوان') {
                     renderProductCard(extractedData);
-                    showError('✅ اطلاعات با موفقیت از لینک دریافت شد!', true);
-                    // مخفی کردن خطا بعد از 3 ثانیه
-                    setTimeout(() => {
-                        document.getElementById('errorAlert').classList.add('hidden');
-                    }, 3000);
+                    showMessage('✅ اطلاعات با موفقیت از آی‌فریم استخراج شد!', 'success');
                 } else {
-                    throw new Error('ساختار صفحه قابل تشخیص نیست. لطفاً فایل را آپلود کنید.');
+                    showMessage('❌ اطلاعاتی در آی‌فریم یافت نشد. لطفاً مطمئن شوید صفحه کامل بارگذاری شده است.', 'error');
                 }
-
             } catch (error) {
-                console.error('Error:', error);
-                showError('دریافت از لینک ممکن نیست. لطفاً فایل HTML را آپلود کنید. (' + error.message + ')');
-            } finally {
-                // بازگرداندن دکمه
-                btn.innerHTML = originalText;
-                btn.disabled = false;
+                showMessage('❌ خطا در دسترسی به آی‌فریم: ' + error.message, 'error');
             }
+        }
+
+        // ---- دریافت از لینک (با آی‌فریم) ----
+        function fetchProductFromUrl(url) {
+            const iframeContainer = document.getElementById('iframeContainer');
+            const iframe = document.getElementById('walmartFrame');
+            
+            // نمایش آی‌فریم
+            iframeContainer.classList.remove('hidden');
+            iframe.src = url;
+            
+            showMessage('⏳ در حال بارگذاری صفحه در آی‌فریم... لطفاً صبر کنید.', 'info');
+            
+            // بعد از بارگذاری کامل، دکمه استخراج فعال می‌شود
+            iframe.onload = function() {
+                showMessage('✅ صفحه بارگذاری شد. حالا دکمه "استخراج از آی‌فریم" را بزنید.', 'success');
+            };
+            
+            iframe.onerror = function() {
+                showMessage('❌ خطا در بارگذاری صفحه. ممکن است سایت اجازه نمایش در آی‌فریم را ندهد.', 'error');
+            };
         }
 
         // ---- پردازش فایل آپلود شده ----
@@ -758,25 +766,22 @@
                 try {
                     const htmlContent = e.target.result;
                     if (!htmlContent || htmlContent.length < 500) {
-                        showError('فایل انتخاب شده معتبر نیست یا خالی است.');
+                        showMessage('فایل انتخاب شده معتبر نیست یا خالی است.', 'error');
                         return;
                     }
                     const extractedData = extractProductData(htmlContent);
                     if (extractedData && extractedData.title && extractedData.title !== 'بدون عنوان') {
                         renderProductCard(extractedData);
-                        showError('✅ اطلاعات با موفقیت از فایل استخراج شد!', true);
-                        setTimeout(() => {
-                            document.getElementById('errorAlert').classList.add('hidden');
-                        }, 3000);
+                        showMessage('✅ اطلاعات با موفقیت از فایل استخراج شد!', 'success');
                     } else {
-                        showError('ساختار فایل مطابق با صفحه محصول وال‌مارت نیست.');
+                        showMessage('ساختار فایل مطابق با صفحه محصول وال‌مارت نیست.', 'error');
                     }
                 } catch (error) {
-                    showError('خطا در خواندن فایل: ' + error.message);
+                    showMessage('خطا در خواندن فایل: ' + error.message, 'error');
                 }
             };
             reader.onerror = function() {
-                showError('خطا در خواندن فایل.');
+                showMessage('خطا در خواندن فایل.', 'error');
             };
             reader.readAsText(file);
         }
@@ -786,7 +791,7 @@
             const urlInput = document.getElementById('urlInput');
             let rawUrl = urlInput.value.trim();
             if (!rawUrl) {
-                alert('لطفاً یک لینک معتبر وارد کنید.');
+                showMessage('لطفاً یک لینک معتبر وارد کنید.', 'error');
                 return;
             }
 
@@ -801,21 +806,56 @@
                     const urlObj = new URL(rawUrl);
                     fetchProductFromUrl(urlObj.href);
                 } catch (e) {
-                    alert('لینک وارد شده معتبر نیست.');
+                    showMessage('لینک وارد شده معتبر نیست.', 'error');
                 }
             }
+        });
+
+        document.getElementById('openFrameBtn').addEventListener('click', function() {
+            const urlInput = document.getElementById('urlInput');
+            let rawUrl = urlInput.value.trim();
+            if (!rawUrl) {
+                showMessage('لطفاً یک لینک معتبر وارد کنید.', 'error');
+                return;
+            }
+
+            try {
+                const urlObj = new URL(rawUrl);
+                fetchProductFromUrl(urlObj.href);
+            } catch (_) {
+                if (!rawUrl.startsWith('http://') && !rawUrl.startsWith('https://')) {
+                    rawUrl = 'https://' + rawUrl;
+                }
+                try {
+                    const urlObj = new URL(rawUrl);
+                    fetchProductFromUrl(urlObj.href);
+                } catch (e) {
+                    showMessage('لینک وارد شده معتبر نیست.', 'error');
+                }
+            }
+        });
+
+        document.getElementById('extractFromFrameBtn').addEventListener('click', extractFromIframe);
+
+        document.getElementById('closeFrameBtn').addEventListener('click', function() {
+            document.getElementById('iframeContainer').classList.add('hidden');
+            const iframe = document.getElementById('walmartFrame');
+            iframe.src = 'about:blank';
+            showMessage('آی‌فریم بسته شد.', 'info');
+            setTimeout(() => {
+                document.getElementById('errorAlert').classList.add('hidden');
+            }, 2000);
         });
 
         document.getElementById('uploadBtn').addEventListener('click', function() {
             const fileInput = document.getElementById('fileInput');
             if (!fileInput.files || fileInput.files.length === 0) {
-                alert('لطفاً ابتدا یک فایل HTML انتخاب کنید.');
+                showMessage('لطفاً ابتدا یک فایل HTML انتخاب کنید.', 'error');
                 return;
             }
             processUploadedFile(fileInput.files[0]);
         });
 
-        // آپلود با انتخاب فایل (خودکار)
         document.getElementById('fileInput').addEventListener('change', function() {
             if (this.files && this.files.length > 0) {
                 processUploadedFile(this.files[0]);
@@ -826,24 +866,9 @@
         window.addEventListener('DOMContentLoaded', function() {
             const defaultUrl = document.getElementById('urlInput').value;
             if (defaultUrl) {
-                // با کمی تاخیر برای نمایش بهتر
                 setTimeout(() => {
                     fetchProductFromUrl(defaultUrl);
                 }, 500);
-            }
-        });
-
-        // اضافه کردن کلید میانبر برای ذخیره صفحه
-        document.addEventListener('keydown', function(e) {
-            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-                // نمایش پیام راهنما
-                const infoBox = document.querySelector('.info-box');
-                infoBox.style.borderColor = '#16a34a';
-                infoBox.style.backgroundColor = '#f0fdf4';
-                setTimeout(() => {
-                    infoBox.style.borderColor = '#0071ce';
-                    infoBox.style.backgroundColor = '#f0f7ff';
-                }, 3000);
             }
         });
 
