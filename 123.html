@@ -82,15 +82,16 @@
             text-align: center;
         }
         .product-link {
-            display: inline-block;
+            display: block;
             background-color: #ffc220;
             color: #000;
             text-decoration: none;
-            padding: 8px 15px;
+            padding: 10px 15px;
             border-radius: 4px;
             font-weight: bold;
             text-align: center;
-            width: calc(100% - 30px);
+            margin: 0 auto;
+            max-width: 280px;
         }
         .product-link:hover {
             background-color: #e5ad1c;
@@ -105,7 +106,7 @@
     
     <div class="input-group">
         <input type="text" id="walmartUrl" value="https://www.walmart.ca/en/search?q=6000205460099" placeholder="https://www.walmart.ca/en/search?q=...">
-        <button onclick="fetchProductData()">یافتن محصول</button>
+        <button id="fetchBtn">یافتن محصول</button>
     </div>
 
     <div class="loading" id="loader">در حال دریافت و تحلیل اطلاعات... لطفاً منتظر بمانید.</div>
@@ -120,7 +121,8 @@
 </div>
 
 <script>
-async function fetchProductData() {
+// استفاده از Event Listener به جای onclick مستقیم در HTML برای پایداری بیشتر کد
+document.getElementById('fetchBtn').addEventListener('click', async function() {
     const url = document.getElementById('walmartUrl').value.trim();
     const loader = document.getElementById('loader');
     const resultCard = document.getElementById('resultCard');
@@ -130,38 +132,35 @@ async function fetchProductData() {
         return;
     }
 
-    // پنهان کردن نتایج قبلی و نمایش لودینگ
     resultCard.style.display = 'none';
     loader.style.display = 'block';
 
-    // استفاده از پروکسی AllOrigins برای دور زدن محدودیت CORS مرورگر
     const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
 
     try {
         const response = await fetch(proxyUrl);
-        if (!response.ok) throw new Error('شبکه پاسخگو نبود.');
+        if (!response.ok) {
+            throw new Error('شبکه پاسخگو نبود.');
+        }
         
         const data = await response.json();
         const htmlContent = data.contents;
 
-        // پارس کردن کدهای HTML دریافت شده به یک داکیومنت مجزا
         const parser = new DOMParser();
         const doc = parser.parseFromString(htmlContent, 'text/html');
 
-        // ۱. پیدا کردن تگ a محصول بر اساس الگوی لینکی که دادید
         const linkElement = doc.querySelector('a[link-identifier]') || doc.querySelector('a[href*="/ip/"]');
 
         if (linkElement) {
-            // ۲. استخراج عنوان (تگ span داخل تگ a)
             const titleSpan = linkElement.querySelector('span.ld_Ec') || linkElement.querySelector('span');
-            let title = titleSpan ? titleSpan.innerHTML.replace(//g, "").trim() : "عنوان یافت نشد";
+            let title = "عنوان یافت نشد";
+            if (titleSpan) {
+                title = titleSpan.innerHTML.replace(//g, "").trim();
+            }
 
-            // ۳. استخراج لینک صفحه اصلی محصول
             let relativeHref = linkElement.getAttribute('href');
             let absoluteHref = relativeHref.startsWith('http') ? relativeHref : 'https://www.walmart.ca' + relativeHref;
 
-            // ۴. تلاش برای پیدا کردن عکس محصول (اگر در صفحه وجود داشته باشد)
-            // معمولاً عکس‌ها داخل تگ img درون یا نزدیک تگ a هستند
             const imgElement = linkElement.querySelector('img') || doc.querySelector(`img[alt*="${title.substring(0,10)}"]`);
             const pImg = document.getElementById('pImg');
             
@@ -169,10 +168,9 @@ async function fetchProductData() {
                 pImg.src = imgElement.getAttribute('src');
                 pImg.style.display = 'block';
             } else {
-                pImg.style.display = 'none'; // در صورت نبودن عکس، کادر عکس پنهان شود
+                pImg.style.display = 'none';
             }
 
-            // قرار دادن مقادیر در کارت نتیجه
             document.getElementById('pTitle').innerText = title;
             document.getElementById('pLink').href = absoluteHref;
 
@@ -180,15 +178,15 @@ async function fetchProductData() {
             resultCard.style.display = 'block';
         } else {
             loader.style.display = 'none';
-            alert('خطا: المان مربوط به این محصول در صفحه یافت نشد. ممکن است ساختار صفحه وال‌مارت تغییر کرده باشد یا درخواست توسط فایروال مسدود شده باشد.');
+            alert('المان محصول در صفحه پیدا نشد. احتمالاً ساختار صفحه یا سیستم امنیتی وال‌مارت دسترسی پروکسی را محدود کرده است.');
         }
 
     } catch (error) {
         console.error(error);
         loader.style.display = 'none';
-        alert('خطایی در ارتباط با سرور رخ داد. لطفا دوباره تلاش کنید.');
+        alert('خطایی در ارتباط با سرور رخ داد. دوباره تلاش کنید.');
     }
-}
+});
 </script>
 
 </body>
