@@ -54,6 +54,28 @@
             font-size: 0.95rem;
         }
 
+        .info-box {
+            background: #f0f7ff;
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            margin-bottom: 1.5rem;
+            border-left: 4px solid #0071ce;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .info-box i {
+            color: #0071ce;
+            font-size: 1.5rem;
+        }
+
+        .info-box .step {
+            font-weight: 600;
+            color: #1e293b;
+        }
+
         .input-section {
             display: flex;
             flex-wrap: wrap;
@@ -137,6 +159,16 @@
             color: #005bb5;
         }
 
+        .btn-success {
+            background: #16a34a;
+            border-color: #16a34a;
+        }
+
+        .btn-success:hover {
+            background: #15803d;
+            border-color: #15803d;
+        }
+
         .upload-section {
             display: flex;
             flex-wrap: wrap;
@@ -208,10 +240,6 @@
             transition: 0.2s;
         }
 
-        .card-image img:not([src]) {
-            opacity: 0.3;
-        }
-
         .card-details {
             flex: 1;
             min-width: 220px;
@@ -268,10 +296,6 @@
             color: #f59e0b;
             letter-spacing: 1px;
             font-size: 1rem;
-        }
-
-        .rating-stars .empty {
-            color: #d1d9e6;
         }
 
         .badge {
@@ -332,8 +356,28 @@
             font-size: 1.2rem;
         }
 
+        .alert-success {
+            background: #dcfce7;
+            color: #166534;
+        }
+
         .hidden {
             display: none !important;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #0071ce;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
 
         @media (max-width: 640px) {
@@ -365,6 +409,10 @@
                 flex-direction: column;
                 align-items: stretch;
             }
+            .info-box {
+                flex-direction: column;
+                text-align: center;
+            }
         }
     </style>
 </head>
@@ -373,10 +421,20 @@
 <div class="container">
     <h1><i class="fas fa-box-open"></i> استخراج‌کننده محصول وال‌مارت</h1>
     <div class="sub">
-        وارد کردن لینک جستجو <strong>یا</strong> آپلود فایل HTML صفحه وال‌مارت
+        <i class="fas fa-arrow-right"></i> دو روش برای دریافت اطلاعات
     </div>
 
-    <!-- بخش هشدار در صورت خطا -->
+    <!-- راهنمای استفاده -->
+    <div class="info-box">
+        <i class="fas fa-lightbulb"></i>
+        <div>
+            <span class="step">روش اول:</span> لینک را وارد کرده و دکمه دریافت را بزنید.
+            <br>
+            <span class="step">روش دوم:</span> اگر روش اول کار نکرد، صفحه را با <kbd>Ctrl+S</kbd> (ویندوز) یا <kbd>Cmd+S</kbd> (مک) ذخیره کرده و فایل را آپلود کنید.
+        </div>
+    </div>
+
+    <!-- بخش هشدار -->
     <div id="errorAlert" class="alert hidden">
         <i class="fas fa-circle-exclamation"></i>
         <span id="errorMessage">خطا در دریافت اطلاعات</span>
@@ -407,7 +465,7 @@
     </div>
 
     <div class="footer-note">
-        <i class="fas fa-code"></i> داده‌ها با الهام از ساختار inspect element وال‌مارت • تصویر و عنوان و قیمت و امتیاز
+        <i class="fas fa-code"></i> داده‌ها با الهام از ساختار inspect element وال‌مارت
     </div>
 </div>
 
@@ -482,17 +540,34 @@
             const parser = new DOMParser();
             const doc = parser.parseFromString(htmlString, 'text/html');
 
-            const itemStack = doc.querySelector('[data-testid="item-stack"]');
-            if (!itemStack) {
-                const fallbackItem = doc.querySelector('[data-item-id]');
-                if (!fallbackItem) return null;
-                return extractFromElement(fallbackItem);
+            // جستجوی مستقیم برای المنت‌های محصول
+            const productItem = doc.querySelector('[data-item-id]');
+            if (productItem) {
+                return extractFromElement(productItem);
             }
 
-            const firstItem = itemStack.querySelector('[data-item-id]');
-            if (!firstItem) return null;
+            // جستجوی در item-stack
+            const itemStack = doc.querySelector('[data-testid="item-stack"]');
+            if (itemStack) {
+                const firstItem = itemStack.querySelector('[data-item-id]');
+                if (firstItem) {
+                    return extractFromElement(firstItem);
+                }
+            }
 
-            return extractFromElement(firstItem);
+            // جستجوی کلی برای هر المنت با کلاس‌های مرتبط
+            const allItems = doc.querySelectorAll('[data-automation-id="product-title"]');
+            for (const item of allItems) {
+                const parent = item.closest('[data-item-id]') || item.parentElement;
+                if (parent) {
+                    const result = extractFromElement(parent);
+                    if (result.title && result.title !== 'بدون عنوان') {
+                        return result;
+                    }
+                }
+            }
+
+            return null;
         }
 
         // ---- تابع نمایش کارت ----
@@ -501,12 +576,19 @@
             const alertBox = document.getElementById('errorAlert');
             alertBox.classList.add('hidden');
 
-            if (!data) {
+            if (!data || !data.title || data.title === 'بدون عنوان') {
                 container.innerHTML = `
                     <div class="empty-state">
                         <i class="fas fa-triangle-exclamation" style="color: #eab308;"></i>
                         <h3>داده‌ای یافت نشد</h3>
-                        <p style="margin-top: 0.5rem; color: #94a3b8;">ساختار صفحه ممکن است تغییر کرده باشد یا فایل/لینک معتبر نیست.</p>
+                        <p style="margin-top: 0.5rem; color: #94a3b8;">
+                            ساختار صفحه ممکن است تغییر کرده باشد یا فایل/لینک معتبر نیست.
+                            <br>
+                            <span style="font-size: 0.9rem; color: #0071ce;">
+                                <i class="fas fa-info-circle"></i> 
+                                صفحه وال‌مارت را با <kbd>Ctrl+S</kbd> ذخیره و آپلود کنید.
+                            </span>
+                        </p>
                     </div>
                 `;
                 return;
@@ -557,92 +639,116 @@
         }
 
         // ---- نمایش خطا ----
-        function showError(message) {
+        function showError(message, isSuccess = false) {
             const alertBox = document.getElementById('errorAlert');
             const errorMsg = document.getElementById('errorMessage');
             errorMsg.textContent = message || 'خطا در دریافت اطلاعات';
+            alertBox.className = 'alert' + (isSuccess ? ' alert-success' : '');
             alertBox.classList.remove('hidden');
 
-            const container = document.getElementById('resultContainer');
-            container.innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-circle-exclamation" style="color: #dc2626;"></i>
-                    <h3>خطا</h3>
-                    <p style="margin-top: 0.5rem; color: #94a3b8;">${message || 'لطفاً روش دیگری را امتحان کنید (آپلود فایل).'}</p>
-                </div>
-            `;
+            if (!isSuccess) {
+                const container = document.getElementById('resultContainer');
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-circle-exclamation" style="color: #dc2626;"></i>
+                        <h3>خطا</h3>
+                        <p style="margin-top: 0.5rem; color: #94a3b8;">
+                            ${message || 'لطفاً روش دوم (آپلود فایل) را امتحان کنید.'}
+                            <br>
+                            <span style="font-size: 0.9rem; color: #0071ce;">
+                                <i class="fas fa-info-circle"></i> 
+                                صفحه را با <kbd>Ctrl+S</kbd> (ویندوز) یا <kbd>Cmd+S</kbd> (مک) ذخیره کنید.
+                            </span>
+                        </p>
+                    </div>
+                `;
+            }
         }
 
-        // ---- دریافت از لینک با پروکسی‌های مختلف ----
+        // ---- دریافت از لینک با روش جدید ----
         async function fetchProductFromUrl(url) {
             const container = document.getElementById('resultContainer');
+            const btn = document.getElementById('fetchBtn');
+            const originalText = btn.innerHTML;
+
+            // نمایش لودینگ
+            btn.innerHTML = '<span class="loading-spinner"></span> در حال دریافت...';
+            btn.disabled = true;
+
             container.innerHTML = `
                 <div class="empty-state">
                     <i class="fas fa-spinner fa-pulse" style="color: #0071ce;"></i>
                     <h3>در حال دریافت اطلاعات...</h3>
+                    <p style="margin-top: 0.5rem; color: #94a3b8;">در حال اتصال به وال‌مارت</p>
                 </div>
             `;
 
-            // لیست پروکسی‌ها (با اولویت)
-            const proxies = [
-                `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
-                `https://corsproxy.io/?${encodeURIComponent(url)}`,
-                `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`
-            ];
+            try {
+                // روش جدید: استفاده از fetch با mode: 'no-cors' و سپس پردازش
+                // اما بهتر است از iframe یا روش‌های دیگر استفاده کنیم
+                // در اینجا از یک روش جایگزین استفاده می‌کنیم: دریافت از طریق سرور پروکسی با timeout
 
-            let lastError = null;
+                const proxyUrls = [
+                    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+                    `https://corsproxy.io/?${encodeURIComponent(url)}`
+                ];
 
-            for (const proxyUrl of proxies) {
-                try {
-                    const response = await fetch(proxyUrl, {
-                        headers: { 'Content-Type': 'application/json' }
-                    });
+                let htmlContent = null;
+                let lastError = null;
 
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}`);
-                    }
+                for (const proxyUrl of proxyUrls) {
+                    try {
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-                    const result = await response.json();
-                    let htmlContent = '';
-
-                    // پروکسی‌های مختلف فرمت متفاوتی دارند
-                    if (result.contents) {
-                        htmlContent = result.contents;
-                    } else if (result.data) {
-                        htmlContent = result.data;
-                    } else if (typeof result === 'string') {
-                        htmlContent = result;
-                    } else {
-                        // تلاش برای پیدا کردن محتوا در هر کلید
-                        for (const key in result) {
-                            if (typeof result[key] === 'string' && result[key].length > 1000) {
-                                htmlContent = result[key];
-                                break;
+                        const response = await fetch(proxyUrl, {
+                            signal: controller.signal,
+                            headers: {
+                                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
                             }
+                        });
+
+                        clearTimeout(timeoutId);
+
+                        if (!response.ok) {
+                            throw new Error(`HTTP ${response.status}`);
                         }
-                    }
 
-                    if (!htmlContent || htmlContent.length < 500) {
-                        throw new Error('محتوای دریافتی ناقص است');
+                        htmlContent = await response.text();
+                        if (htmlContent && htmlContent.length > 1000) {
+                            break; // موفقیت
+                        }
+                    } catch (error) {
+                        lastError = error;
+                        console.warn(`پروکسی ${proxyUrl} ناموفق:`, error.message);
                     }
-
-                    const extractedData = extractProductData(htmlContent);
-                    if (extractedData) {
-                        renderProductCard(extractedData);
-                        return; // موفقیت
-                    } else {
-                        throw new Error('ساختار صفحه قابل تشخیص نیست');
-                    }
-
-                } catch (error) {
-                    lastError = error;
-                    console.warn(`پروکسی ${proxyUrl} ناموفق:`, error.message);
-                    // ادامه با پروکسی بعدی
                 }
-            }
 
-            // اگر همه پروکسی‌ها ناموفق بودند
-            showError('دریافت از لینک ممکن نیست. لطفاً فایل HTML را آپلود کنید. (' + (lastError?.message || 'خطای ناشناخته') + ')');
+                if (!htmlContent || htmlContent.length < 1000) {
+                    throw new Error('محتوای کافی دریافت نشد. لطفاً از روش آپلود فایل استفاده کنید.');
+                }
+
+                const extractedData = extractProductData(htmlContent);
+                if (extractedData && extractedData.title && extractedData.title !== 'بدون عنوان') {
+                    renderProductCard(extractedData);
+                    showError('✅ اطلاعات با موفقیت از لینک دریافت شد!', true);
+                    // مخفی کردن خطا بعد از 3 ثانیه
+                    setTimeout(() => {
+                        document.getElementById('errorAlert').classList.add('hidden');
+                    }, 3000);
+                } else {
+                    throw new Error('ساختار صفحه قابل تشخیص نیست. لطفاً فایل را آپلود کنید.');
+                }
+
+            } catch (error) {
+                console.error('Error:', error);
+                showError('دریافت از لینک ممکن نیست. لطفاً فایل HTML را آپلود کنید. (' + error.message + ')');
+            } finally {
+                // بازگرداندن دکمه
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
         }
 
         // ---- پردازش فایل آپلود شده ----
@@ -656,10 +762,12 @@
                         return;
                     }
                     const extractedData = extractProductData(htmlContent);
-                    if (extractedData) {
+                    if (extractedData && extractedData.title && extractedData.title !== 'بدون عنوان') {
                         renderProductCard(extractedData);
-                        // پاک کردن خطاها
-                        document.getElementById('errorAlert').classList.add('hidden');
+                        showError('✅ اطلاعات با موفقیت از فایل استخراج شد!', true);
+                        setTimeout(() => {
+                            document.getElementById('errorAlert').classList.add('hidden');
+                        }, 3000);
                     } else {
                         showError('ساختار فایل مطابق با صفحه محصول وال‌مارت نیست.');
                     }
@@ -718,12 +826,28 @@
         window.addEventListener('DOMContentLoaded', function() {
             const defaultUrl = document.getElementById('urlInput').value;
             if (defaultUrl) {
-                fetchProductFromUrl(defaultUrl);
+                // با کمی تاخیر برای نمایش بهتر
+                setTimeout(() => {
+                    fetchProductFromUrl(defaultUrl);
+                }, 500);
+            }
+        });
+
+        // اضافه کردن کلید میانبر برای ذخیره صفحه
+        document.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                // نمایش پیام راهنما
+                const infoBox = document.querySelector('.info-box');
+                infoBox.style.borderColor = '#16a34a';
+                infoBox.style.backgroundColor = '#f0fdf4';
+                setTimeout(() => {
+                    infoBox.style.borderColor = '#0071ce';
+                    infoBox.style.backgroundColor = '#f0f7ff';
+                }, 3000);
             }
         });
 
     })();
 </script>
-
 </body>
 </html>
