@@ -114,61 +114,78 @@
 </div>
 
 <script>
-document.getElementById('fetchBtn').addEventListener('click', async function() {
-    const url = document.getElementById('walmartUrl').value.trim();
-    const loader = document.getElementById('loader');
-    const resultCard = document.getElementById('resultCard');
+document.getElementById("fetchBtn").addEventListener("click", async function() {
+    const urlInput = document.getElementById("walmartUrl");
+    const loader = document.getElementById("loader");
+    const resultCard = document.getElementById("resultCard");
+    
+    const url = urlInput.value.trim();
     
     if (!url) {
-        alert('لطفا یک لینک معتبر وارد کنید.');
+        alert("لطفا یک لینک معتبر وارد کنید.");
         return;
     }
 
-    resultCard.style.display = 'none';
-    loader.style.display = 'block';
+    resultCard.style.display = "none";
+    loader.style.display = "block";
 
-    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+    // انکود کردن امن آدرس هدف برای ارسال به پروکسی
+    const targetUrl = encodeURIComponent(url);
+    const proxyUrl = "https://api.allorigins.win/get?url=" + targetUrl;
 
     try {
         const response = await fetch(proxyUrl);
-        if (!response.ok) throw new Error('Network error');
+        if (!response.ok) {
+            throw new Error("خطا در پاسخ‌دهی شبکه");
+        }
         
         const data = await response.json();
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(data.contents, 'text/html');
+        const htmlContent = data.contents;
 
-        const linkElement = doc.querySelector('a[link-identifier]') || doc.querySelector('a[href*="/ip/"]');
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(htmlContent, "text/html");
+
+        // پیدا کردن تگ a محصول
+        const linkElement = doc.querySelector("a[link-identifier]") || doc.querySelector("a[href*='/ip/']");
 
         if (linkElement) {
-            const titleSpan = linkElement.querySelector('span.ld_Ec') || linkElement.querySelector('span');
-            let title = titleSpan ? titleSpan.innerHTML.replace(//g, "").trim() : "بدون عنوان";
-
-            let href = linkElement.getAttribute('href');
-            let fullLink = href.startsWith('http') ? href : 'https://www.walmart.ca' + href;
-
-            const imgElement = linkElement.querySelector('img') || doc.querySelector(`img[alt*="${title.substring(0,10)}"]`);
-            const pImg = document.getElementById('pImg');
-            
-            if (imgElement && imgElement.getAttribute('src')) {
-                pImg.src = imgElement.getAttribute('src');
-                pImg.style.display = 'block';
-            } else {
-                pImg.style.display = 'none';
+            const titleSpan = linkElement.querySelector("span.ld_Ec") || linkElement.querySelector("span");
+            let title = "بدون عنوان";
+            if (titleSpan) {
+                // پاکسازی کامنت‌های HTML از درون عنوان به روش امن
+                title = titleSpan.textContent.trim();
             }
 
-            document.getElementById('pTitle').innerText = title;
-            document.getElementById('pLink').href = fullLink;
+            let href = linkElement.getAttribute("href") || "";
+            let fullLink = href;
+            if (!href.startsWith("http")) {
+                fullLink = "https://www.walmart.ca" + href;
+            }
 
-            loader.style.display = 'none';
-            resultCard.style.display = 'block';
+            // پیدا کردن عکس محصول
+            const imgElement = linkElement.querySelector("img") || doc.querySelector("img");
+            const pImg = document.getElementById("pImg");
+            
+            if (imgElement && imgElement.getAttribute("src")) {
+                pImg.src = imgElement.getAttribute("src");
+                pImg.style.display = "block";
+            } else {
+                pImg.style.display = "none";
+            }
+
+            document.getElementById("pTitle").innerText = title;
+            document.getElementById("pLink").href = fullLink;
+
+            loader.style.display = "none";
+            resultCard.style.display = "block";
         } else {
-            loader.style.display = 'none';
-            alert('المان محصول پیدا نشد.');
+            loader.style.display = "none";
+            alert("المان محصول پیدا نشد. ممکن است دسترسی توسط کلودفلر والمارکت مسدود شده باشد.");
         }
     } catch (error) {
         console.error(error);
-        loader.style.display = 'none';
-        alert('خطا در ارتباط با سرور.');
+        loader.style.display = "none";
+        alert("خطا در ارتباط با سرور رخ داد.");
     }
 });
 </script>
