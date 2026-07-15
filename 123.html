@@ -3,19 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>استخراج هوشمند اطلاعات محصول</title>
+    <title>استخراج‌گر هوشمند اطلاعات وال‌مارت</title>
     <style>
         body {
             font-family: Tahoma, Geneva, sans-serif;
-            background-color: #f0f2f5;
+            background-color: #f4f6f9;
             margin: 0;
             padding: 20px;
             color: #333;
         }
         .container {
-            max-width: 600px;
+            max-width: 650px;
             background: #ffffff;
-            margin: 30px auto;
+            margin: 20px auto;
             padding: 25px;
             border-radius: 12px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.08);
@@ -23,13 +23,21 @@
         h2 {
             color: #0071dc;
             text-align: center;
+            margin-bottom: 5px;
+        }
+        h3 {
+            font-size: 16px;
+            color: #555;
+            border-bottom: 2px solid #0071dc;
+            padding-bottom: 5px;
+            margin-top: 25px;
         }
         .input-group {
             display: flex;
             gap: 10px;
-            margin: 20px 0;
+            margin: 15px 0;
         }
-        input[type="text"] {
+        input[type="text"], textarea {
             flex: 1;
             padding: 12px;
             border: 1px solid #ccc;
@@ -37,15 +45,22 @@
             font-size: 14px;
             direction: ltr;
         }
+        textarea {
+            width: 100%;
+            height: 120px;
+            resize: vertical;
+            box-sizing: border-box;
+        }
         button {
             background-color: #0071dc;
             color: white;
             border: none;
             padding: 12px 24px;
-            font-size: 15px;
+            font-size: 14px;
             font-weight: bold;
             cursor: pointer;
             border-radius: 6px;
+            transition: background 0.2s;
         }
         button:hover {
             background-color: #0050a0;
@@ -61,12 +76,13 @@
             border: 1px solid #e0e0e0;
             border-radius: 8px;
             padding: 20px;
-            background: #fafafa;
+            background: #fdfdfd;
             text-align: center;
+            margin-top: 20px;
         }
         .product-image {
-            max-width: 220px;
-            max-height: 220px;
+            max-width: 200px;
+            max-height: 200px;
             display: block;
             margin: 0 auto 15px auto;
             border-radius: 8px;
@@ -96,14 +112,21 @@
 <body>
 
 <div class="container">
-    <h2>استخراج هوشمند محصول از Walmart</h2>
+    <h2>استخراج‌گر هوشمند Walmart</h2>
+    <p style="text-align: center; font-size: 12px; color: #666; margin: 0 0 20px 0;">اطلاعات محصول را به صورت خودکار یا با کپی کد دریافت کنید</p>
     
+    <h3>روش اول: استخراج خودکار با لینک</h3>
     <div class="input-group">
-        <input type="text" id="walmartUrl" value="https://www.walmart.ca/en/search?q=6000205460099">
-        <button id="fetchBtn">یافتن محصول</button>
+        <input type="text" id="walmartUrl" value="https://www.walmart.ca/en/search?q=6000205460099" placeholder="https://www.walmart.ca/en/search?q=...">
+        <button id="fetchBtn">تلاش برای دریافت خودکار</button>
     </div>
 
-    <div class="loading" id="loader">در حال دریافت و آنالیز صفحه محصول...</div>
+    <h3>روش دوم: استخراج فوری (از کدهای کپی شده Inspect Element)</h3>
+    <p style="font-size: 12px; color: #666; margin: 5px 0;">اگر روش اول به دلیل مسدودیت سرور خطا داد، کد کپی شده را اینجا پیست کنید:</p>
+    <textarea id="htmlInput" placeholder='کد کپی شده را اینجا پیست کنید...'></textarea>
+    <button id="extractManualBtn" style="background-color: #2ecc71; width: 100%; margin-top: 10px;">استخراج مستقیم از کد پیست شده</button>
+
+    <div class="loading" id="loader">در حال پردازش اطلاعات...</div>
 
     <div class="result-box" id="resultCard">
         <img id="pImg" class="product-image" src="" alt="تصویر محصول">
@@ -115,101 +138,122 @@
 </div>
 
 <script>
+// تابع کمکی برای پردازش کدهای HTML و کشیدن بیرون اطلاعات
+function processHTML(doc) {
+    // ۱. پیدا کردن تگ لینک محصول
+    let linkElement = doc.querySelector("a[link-identifier]") || 
+                      doc.querySelector("a[href*='/ip/']") ||
+                      doc.querySelector("a");
+
+    if (!linkElement) return null;
+
+    // ۲. استخراج عنوان
+    let title = "عنوان یافت نشد";
+    const titleSpan = doc.querySelector("[data-automation-id='product-title']") || 
+                      linkElement.querySelector("span.ld_Ec") || 
+                      linkElement.querySelector("span");
+    
+    if (titleSpan) {
+        title = titleSpan.textContent.replace(//g, "").trim();
+    } else if (linkElement.textContent) {
+        title = linkElement.textContent.trim();
+    }
+
+    // ۳. استخراج لینک اصلی خرید
+    let href = linkElement.getAttribute("href") || "";
+    let fullLink = href;
+    if (href && !href.startsWith("http")) {
+        fullLink = "https://www.walmart.ca" + href;
+    }
+
+    // ۴. استخراج عکس
+    let imgSrc = "";
+    const imgElement = doc.querySelector("img[data-testid='productTileImage']") || 
+                       doc.querySelector("img[id*='productImage']") || 
+                       linkElement.querySelector("img") ||
+                       doc.querySelector("img");
+    
+    if (imgElement) {
+        imgSrc = imgElement.getAttribute("src") || imgElement.getAttribute("data-src") || imgElement.getAttribute("srcset");
+        if (imgSrc && imgSrc.includes(",")) {
+            imgSrc = imgSrc.split(",")[0].trim().split(" ")[0];
+        }
+    }
+
+    return { title, fullLink, imgSrc };
+}
+
+// نمایش اطلاعات روی کارت گرافیکی برنامه
+function displayData(data) {
+    const pImg = document.getElementById("pImg");
+    if (data.imgSrc) {
+        pImg.src = data.imgSrc;
+        pImg.style.display = "block";
+    } else {
+        pImg.style.display = "none";
+    }
+
+    document.getElementById("pTitle").innerText = data.title;
+    document.getElementById("pLink").href = data.fullLink;
+
+    document.getElementById("loader").style.display = "none";
+    document.getElementById("resultCard").style.display = "block";
+}
+
+// رویداد دکمه خودکار (روش اول)
 document.getElementById("fetchBtn").addEventListener("click", async function() {
-    const urlInput = document.getElementById("walmartUrl");
+    const url = document.getElementById("walmartUrl").value.trim();
     const loader = document.getElementById("loader");
     const resultCard = document.getElementById("resultCard");
     
-    const url = urlInput.value.trim();
-    
-    if (!url) {
-        alert("لطفا یک لینک معتبر وارد کنید.");
-        return;
-    }
+    if (!url) return alert("لطفا یک لینک معتبر وارد کنید.");
 
     resultCard.style.display = "none";
     loader.style.display = "block";
 
-    // تلاش برای استخراج کد محصول (مثلا 6000205460099) از داخل لینک ورودی کاربر
-    let itemId = "";
-    try {
-        const urlObj = new URL(url);
-        itemId = urlObj.searchParams.get("q") || "";
-    } catch(e) {
-        console.log("آدرس وارد شده استاندارد نیست اما به تلاش ادامه می‌دهیم.");
-    }
-
-    // فرستادن درخواست به وال‌مارت از طریق پروکسی امن
     const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(url);
 
     try {
         const response = await fetch(proxyUrl);
-        if (!response.ok) {
-            throw new Error("سایت مبدا با پروکسی همکاری نکرد.");
-        }
+        if (!response.ok) throw new Error();
         
         const htmlContent = await response.text();
-
         const parser = new DOMParser();
         const doc = parser.parseFromString(htmlContent, "text/html");
 
-        // ۱. پیدا کردن تگ لینک محصول بر اساس شناسه محصول یا الگوهای ساختار ارسالی شما
-        let linkSelector = "a[link-identifier]";
-        if (itemId) {
-            linkSelector = "a[link-identifier='" + itemId + "']";
-        }
-        let linkElement = doc.querySelector(linkSelector) || doc.querySelector("a[href*='/ip/']");
-
-        if (linkElement) {
-            // ۲. استخراج دقیق عنوان (طبق تگ کپی شده شما اولویت با data-automation-id="product-title" است)
-            let title = "عنوان یافت نشد";
-            const titleSpan = doc.querySelector("[data-automation-id='product-title']") || 
-                              linkElement.querySelector("span.ld_Ec") || 
-                              linkElement.querySelector("span");
-            
-            if (titleSpan) {
-                title = titleSpan.textContent.trim();
-            }
-
-            // ۳. استخراج آدرس لینک خرید
-            let href = linkElement.getAttribute("href") || "";
-            let fullLink = href;
-            if (!href.startsWith("http")) {
-                fullLink = "https://www.walmart.ca" + href;
-            }
-
-            // ۴. استخراج تصویر با تگ اختصاصی شما: data-testid="productTileImage"
-            let imgSrc = "";
-            const imgElement = doc.querySelector("img[data-testid='productTileImage']") || 
-                               doc.querySelector("img[id*='productImage']") || 
-                               linkElement.querySelector("img");
-            
-            if (imgElement) {
-                imgSrc = imgElement.getAttribute("src") || imgElement.getAttribute("data-src");
-            }
-
-            // قرار دادن مقادیر استخراج شده در کارت نتیجه فرانت‌اند
-            const pImg = document.getElementById("pImg");
-            if (imgSrc) {
-                pImg.src = imgSrc;
-                pImg.style.display = "block";
-            } else {
-                pImg.style.display = "none";
-            }
-
-            document.getElementById("pTitle").innerText = title;
-            document.getElementById("pLink").href = fullLink;
-
-            loader.style.display = "none";
-            resultCard.style.display = "block";
+        const result = processHTML(doc);
+        if (result) {
+            displayData(result);
         } else {
             loader.style.display = "none";
-            alert("ساختار تگ محصول در کدهای این صفحه یافت نشد. ممکن است صفحه وال‌مارت هنوز به طور کامل بارگذاری نشده باشد.");
+            alert("خطا: ساختار تگ محصول یافت نشد. وال‌مارت دسترسی پروکسی خودکار را مسدود کرده است. لطفاً از روش دوم (کپی دستی کد) استفاده کنید.");
         }
     } catch (error) {
-        console.error(error);
         loader.style.display = "none";
-        alert("خطا در ارتباط با سرور یا مسدود شدن درخواست.");
+        alert("سیستم‌های ضد ربات وال‌مارت درخواست خودکار را مسدود کردند. لطفاً از روش دوم (کپی دستی کد) استفاده کنید.");
+    }
+});
+
+// رویداد دکمه دستی (روش دوم)
+document.getElementById("extractManualBtn").addEventListener("click", function() {
+    const rawHtml = document.getElementById("htmlInput").value.trim();
+    const loader = document.getElementById("loader");
+    const resultCard = document.getElementById("resultCard");
+
+    if (!rawHtml) return alert("لطفاً ابتدا کد HTML کپی شده را پیست کنید.");
+
+    resultCard.style.display = "none";
+    loader.style.display = "block";
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(rawHtml, "text/html");
+
+    const result = processHTML(doc);
+    if (result) {
+        displayData(result);
+    } else {
+        loader.style.display = "none";
+        alert("ساختار تگ‌های وارد شده صحیح نیست. مطمئن شوید کل تگ محصول را کپی کرده‌اید.");
     }
 });
 </script>
