@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Walmart Product Finder</title>
+
+<style>
+body{
+    font-family:Arial;
+    max-width:700px;
+    margin:30px auto;
+}
+input{
+    width:350px;
+    padding:10px;
+}
+button{
+    padding:10px 20px;
+}
+#result{
+    margin-top:25px;
+}
+img{
+    width:250px;
+    border:1px solid #ccc;
+    padding:5px;
+}
+</style>
+
+</head>
+<body>
+
+<h2>Walmart Barcode Search</h2>
+
+<input id="barcode" placeholder="Barcode">
+<button onclick="search()">Search</button>
+
+<div id="result"></div>
+
+<script>
+
+async function search(){
+
+    const barcode=document.getElementById("barcode").value.trim();
+
+    if(barcode=="") return;
+
+    const url="https://www.walmart.ca/en/search?q="+barcode;
+
+    // برای جلوگیری از CORS
+    const proxy="https://api.allorigins.win/raw?url="+encodeURIComponent(url);
+
+    const html=await fetch(proxy).then(r=>r.text());
+
+    const parser=new DOMParser();
+    const doc=parser.parseFromString(html,"text/html");
+
+    //----------------------------------------
+    // Title
+    //----------------------------------------
+
+    const titleElement=doc.querySelector('a[link-identifier] span');
+
+    const title=titleElement?
+        titleElement.textContent.trim():
+        "Not Found";
+
+    //----------------------------------------
+    // Image
+    //----------------------------------------
+
+    let img="";
+
+    const imageElement=doc.querySelector("img");
+
+    if(imageElement){
+        img=imageElement.src;
+    }
+
+    //----------------------------------------
+
+    document.getElementById("result").innerHTML=`
+        <h3>${title}</h3>
+        <img src="${img}">
+    `;
+
+}
+
+</script>
+
+</body>
+</html>
