@@ -130,13 +130,11 @@ document.getElementById("fetchBtn").addEventListener("click", async function() {
     resultCard.style.display = "none";
     loader.style.display = "block";
 
+    // استفاده از سرویس رایگان corsproxy.io برای دور زدن هدرهای Origin
+    const finalUrl = "https://corsproxy.io/?" + encodeURIComponent(url);
+
     try {
-        // ارسال درخواست مستقیم به وال‌مارت (با کمک افزونه CORS فعال شده در مرورگر شما)
-        const response = await fetch(url, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-            }
-        });
+        const response = await fetch(finalUrl);
         
         if (!response.ok) {
             throw new Error("سایت وال‌مارت پاسخ نداد. کد خطا: " + response.status);
