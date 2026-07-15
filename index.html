@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Pallet Tracker</title>
+
+<script src="https://unpkg.com/html5-qrcode"></script>
+
+<style>
+body{
+    font-family:Arial;
+    max-width:500px;
+    margin:auto;
+    padding:20px;
+}
+
+button{
+    width:100%;
+    padding:12px;
+    margin-top:10px;
+    font-size:18px;
+}
+
+input{
+    width:100%;
+    padding:10px;
+    margin-top:10px;
+}
+
+#reader{
+    margin-top:20px;
+}
+
+li{
+    margin:5px 0;
+}
+</style>
+
+</head>
+
+<body>
+
+<h2>Pallet Tracker</h2>
+
+<input id="location" placeholder="Location">
+
+<button onclick="scanPallet()">
+Scan Pallet
+</button>
+
+<h3 id="currentPallet"></h3>
+
+<button onclick="scanBox()">
+Scan Box
+</button>
+
+<ul id="boxes"></ul>
+
+<button onclick="saveData()">
+Save
+</button>
+
+<hr>
+
+<h3>Saved Data</h3>
+
+<button onclick="showData()">
+Show
+</button>
+
+<div id="saved"></div>
+
+<div id="reader"></div>
+
+<script>
+
+let pallet="";
+let boxes=[];
+
+function scanner(callback){
+
+document.getElementById("reader").innerHTML="";
+
+const html5QrCode=new Html5Qrcode("reader");
+
+html5QrCode.start(
+{ facingMode:"environment"},
+{fps:10, qrbox:250},
+(decodedText)=>{
+
+callback(decodedText);
+
+html5QrCode.stop();
+
+}
+);
+
+}
+
+function scanPallet(){
+
+scanner((code)=>{
+
+pallet=code;
+
+document.getElementById("currentPallet").innerHTML=
+"Pallet : "+code;
+
+boxes=[];
+
+document.getElementById("boxes").innerHTML="";
+
+});
+
+}
+
+function scanBox(){
+
+if(pallet==""){
+
+alert("Scan pallet first");
+
+return;
+
+}
+
+scanner((code)=>{
+
+boxes.push(code);
+
+let li=document.createElement("li");
+
+li.innerHTML=code;
+
+document.getElementById("boxes").appendChild(li);
+
+});
+
+}
+
+function saveData(){
+
+let data=JSON.parse(localStorage.getItem("pallets")||"[]");
+
+data.push({
+
+pallet:pallet,
+
+location:document.getElementById("location").value,
+
+boxes:boxes
+
+});
+
+localStorage.setItem("pallets",JSON.stringify(data));
+
+alert("Saved");
+
+}
+
+function showData(){
+
+let data=JSON.parse(localStorage.getItem("pallets")||"[]");
+
+document.getElementById("saved").innerHTML=
+"<pre>"+JSON.stringify(data,null,2)+"</pre>";
+
+}
+
+</script>
+
+</body>
+</html>
