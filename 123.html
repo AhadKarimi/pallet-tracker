@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>استخراج خودکار اطلاعات محصول</title>
+    <title>استخراج مستقیم اطلاعات محصول</title>
     <style>
         body {
             font-family: Tahoma, Geneva, sans-serif;
@@ -95,14 +95,15 @@
 <body>
 
 <div class="container">
-    <h2>استخراج خودکار محصول از Walmart</h2>
+    <h2>استخراج مستقیم محصول از Walmart</h2>
+    <p style="text-align: center; font-size: 12px; color: #ff0000; font-weight: bold;">⚠️ مطمئن شوید افزونه Allow CORS روی مرورگر شما روشن است.</p>
     
     <div class="input-group">
         <input type="text" id="walmartUrl" value="https://www.walmart.ca/en/search?q=6000205460099">
         <button id="fetchBtn">یافتن محصول</button>
     </div>
 
-    <div class="loading" id="loader">در حال دریافت و تحلیل اطلاعات...</div>
+    <div class="loading" id="loader">در حال دریافت مستقیم اطلاعات از وال‌مارت...</div>
 
     <div class="result-box" id="resultCard">
         <img id="pImg" class="product-image" src="" alt="تصویر محصول" style="display: none;">
@@ -129,18 +130,19 @@ document.getElementById("fetchBtn").addEventListener("click", async function() {
     resultCard.style.display = "none";
     loader.style.display = "block";
 
-    // انکود کردن امن آدرس هدف برای ارسال به پروکسی
-    const targetUrl = encodeURIComponent(url);
-    const proxyUrl = "https://api.allorigins.win/get?url=" + targetUrl;
-
     try {
-        const response = await fetch(proxyUrl);
+        // ارسال درخواست مستقیم به وال‌مارت (با کمک افزونه CORS فعال شده در مرورگر شما)
+        const response = await fetch(url, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            }
+        });
+        
         if (!response.ok) {
-            throw new Error("خطا در پاسخ‌دهی شبکه");
+            throw new Error("سایت وال‌مارت پاسخ نداد. کد خطا: " + response.status);
         }
         
-        const data = await response.json();
-        const htmlContent = data.contents;
+        const htmlContent = await response.text();
 
         const parser = new DOMParser();
         const doc = parser.parseFromString(htmlContent, "text/html");
@@ -152,7 +154,6 @@ document.getElementById("fetchBtn").addEventListener("click", async function() {
             const titleSpan = linkElement.querySelector("span.ld_Ec") || linkElement.querySelector("span");
             let title = "بدون عنوان";
             if (titleSpan) {
-                // پاکسازی کامنت‌های HTML از درون عنوان به روش امن
                 title = titleSpan.textContent.trim();
             }
 
@@ -180,12 +181,12 @@ document.getElementById("fetchBtn").addEventListener("click", async function() {
             resultCard.style.display = "block";
         } else {
             loader.style.display = "none";
-            alert("المان محصول پیدا نشد. ممکن است دسترسی توسط کلودفلر والمارکت مسدود شده باشد.");
+            alert("صفحه دریافت شد، اما تگ محصول پیدا نشد. احتمالاً صفحه جستجو نتیجه‌ای نداشته است.");
         }
     } catch (error) {
         console.error(error);
         loader.style.display = "none";
-        alert("خطا در ارتباط با سرور رخ داد.");
+        alert("خطا در ارتباط مستقیم با وال‌مارت: " + error.message);
     }
 });
 </script>
