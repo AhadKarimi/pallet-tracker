@@ -3,17 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>استخراج خودکار اطلاعات محصول از لینک</title>
+    <title>استخراج خودکار اطلاعات محصول</title>
     <style>
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: Tahoma, Geneva, sans-serif;
             background-color: #f0f2f5;
             margin: 0;
             padding: 20px;
             color: #333;
         }
         .container {
-            max-width: 650px;
+            max-width: 600px;
             background: #ffffff;
             margin: 30px auto;
             padding: 25px;
@@ -23,12 +23,11 @@
         h2 {
             color: #0071dc;
             text-align: center;
-            margin-bottom: 20px;
         }
         .input-group {
             display: flex;
             gap: 10px;
-            margin-bottom: 20px;
+            margin: 20px 0;
         }
         input[type="text"] {
             flex: 1;
@@ -47,7 +46,6 @@
             font-weight: bold;
             cursor: pointer;
             border-radius: 6px;
-            transition: background 0.2s;
         }
         button:hover {
             background-color: #0050a0;
@@ -63,7 +61,6 @@
             border: 1px solid #e0e0e0;
             border-radius: 8px;
             padding: 20px;
-            margin-top: 20px;
             background: #fafafa;
         }
         .product-image {
@@ -93,35 +90,30 @@
             margin: 0 auto;
             max-width: 280px;
         }
-        .product-link:hover {
-            background-color: #e5ad1c;
-        }
     </style>
 </head>
 <body>
 
 <div class="container">
     <h2>استخراج خودکار محصول از Walmart</h2>
-    <p style="text-align: center; font-size: 13px; color: #666;">کافیست لینک جستجو یا صفحه محصول وال‌مارت کانادا را وارد کنید:</p>
     
     <div class="input-group">
-        <input type="text" id="walmartUrl" value="https://www.walmart.ca/en/search?q=6000205460099" placeholder="https://www.walmart.ca/en/search?q=...">
+        <input type="text" id="walmartUrl" value="https://www.walmart.ca/en/search?q=6000205460099">
         <button id="fetchBtn">یافتن محصول</button>
     </div>
 
-    <div class="loading" id="loader">در حال دریافت و تحلیل اطلاعات... لطفاً منتظر بمانید.</div>
+    <div class="loading" id="loader">در حال دریافت و تحلیل اطلاعات...</div>
 
     <div class="result-box" id="resultCard">
         <img id="pImg" class="product-image" src="" alt="تصویر محصول" style="display: none;">
         <div class="product-title" id="pTitle">عنوان محصول</div>
         <div style="text-align: center;">
-            <a id="pLink" class="product-link" href="#" target="_blank">مشاهده محصول در سایت وال‌مارت</a>
+            <a id="pLink" class="product-link" href="#" target="_blank">مشاهده محصول در سایت</a>
         </div>
     </div>
 </div>
 
 <script>
-// استفاده از Event Listener به جای onclick مستقیم در HTML برای پایداری بیشتر کد
 document.getElementById('fetchBtn').addEventListener('click', async function() {
     const url = document.getElementById('walmartUrl').value.trim();
     const loader = document.getElementById('loader');
@@ -139,27 +131,20 @@ document.getElementById('fetchBtn').addEventListener('click', async function() {
 
     try {
         const response = await fetch(proxyUrl);
-        if (!response.ok) {
-            throw new Error('شبکه پاسخگو نبود.');
-        }
+        if (!response.ok) throw new Error('Network error');
         
         const data = await response.json();
-        const htmlContent = data.contents;
-
         const parser = new DOMParser();
-        const doc = parser.parseFromString(htmlContent, 'text/html');
+        const doc = parser.parseFromString(data.contents, 'text/html');
 
         const linkElement = doc.querySelector('a[link-identifier]') || doc.querySelector('a[href*="/ip/"]');
 
         if (linkElement) {
             const titleSpan = linkElement.querySelector('span.ld_Ec') || linkElement.querySelector('span');
-            let title = "عنوان یافت نشد";
-            if (titleSpan) {
-                title = titleSpan.innerHTML.replace(//g, "").trim();
-            }
+            let title = titleSpan ? titleSpan.innerHTML.replace(//g, "").trim() : "بدون عنوان";
 
-            let relativeHref = linkElement.getAttribute('href');
-            let absoluteHref = relativeHref.startsWith('http') ? relativeHref : 'https://www.walmart.ca' + relativeHref;
+            let href = linkElement.getAttribute('href');
+            let fullLink = href.startsWith('http') ? href : 'https://www.walmart.ca' + href;
 
             const imgElement = linkElement.querySelector('img') || doc.querySelector(`img[alt*="${title.substring(0,10)}"]`);
             const pImg = document.getElementById('pImg');
@@ -172,19 +157,18 @@ document.getElementById('fetchBtn').addEventListener('click', async function() {
             }
 
             document.getElementById('pTitle').innerText = title;
-            document.getElementById('pLink').href = absoluteHref;
+            document.getElementById('pLink').href = fullLink;
 
             loader.style.display = 'none';
             resultCard.style.display = 'block';
         } else {
             loader.style.display = 'none';
-            alert('المان محصول در صفحه پیدا نشد. احتمالاً ساختار صفحه یا سیستم امنیتی وال‌مارت دسترسی پروکسی را محدود کرده است.');
+            alert('المان محصول پیدا نشد.');
         }
-
     } catch (error) {
         console.error(error);
         loader.style.display = 'none';
-        alert('خطایی در ارتباط با سرور رخ داد. دوباره تلاش کنید.');
+        alert('خطا در ارتباط با سرور.');
     }
 });
 </script>
