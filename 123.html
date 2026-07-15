@@ -2,172 +2,110 @@
 <html lang="fa" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>استخراج‌کننده اطلاعات محصول والمارت</title>
+    <title>استخراج اطلاعات محصول</title>
     <style>
         body {
             font-family: Tahoma, Arial, sans-serif;
-            background-color: #f4f6f9;
-            margin: 0;
+            background-color: #f4f4f9;
+            margin: 20px;
             padding: 20px;
-            color: #333;
         }
         .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: #fff;
-            padding: 25px;
+            max-width: 600px;
+            background: white;
+            padding: 20px;
             border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        }
-        h1 {
-            color: #0071dc;
-            text-align: center;
-            font-size: 24px;
-        }
-        label {
-            font-weight: bold;
-            display: block;
-            margin-bottom: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            margin: 0 auto;
         }
         textarea {
             width: 100%;
             height: 120px;
+            margin-bottom: 15px;
             padding: 10px;
+            box-sizing: border-box;
             border: 1px solid #ccc;
             border-radius: 4px;
-            box-sizing: border-box;
-            font-family: monospace;
-            font-size: 14px;
-            resize: vertical;
         }
         button {
-            background-color: #0071dc;
+            background-color: #0071dc; /* رنگ آبی والمارتی */
             color: white;
             border: none;
-            padding: 12px 20px;
+            padding: 10px 20px;
             font-size: 16px;
-            border-radius: 4px;
             cursor: pointer;
+            border-radius: 4px;
             width: 100%;
-            margin-top: 15px;
-            font-weight: bold;
-            transition: background 0.3s;
         }
         button:hover {
             background-color: #0050a0;
         }
-        .result-box {
-            margin-top: 25px;
+        .result {
+            margin-top: 20px;
             padding: 15px;
-            background-color: #f8f9fa;
-            border-right: 5px solid #28a745;
-            border-radius: 4px;
-            display: none;
+            border-top: 2px dashed #0071dc;
         }
-        .result-item {
-            margin-bottom: 12px;
-            font-size: 15px;
-        }
-        .result-item span {
+        .product-title {
             font-weight: bold;
-            color: #555;
+            font-size: 18px;
+            color: #333;
         }
-        .result-item a {
+        .product-link {
             color: #0071dc;
-            text-decoration: none;
-        }
-        .result-item a:hover {
-            text-decoration: underline;
+            word-break: break-all;
+            display: block;
+            margin-top: 10px;
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>استخراج اطلاعات لینک والمارت</h1>
-    <p style="text-align: center; color: #666;">کد HTML تگ لینک محصول (مانند نمونه خودتان) را در جعبه زیر قرار دهید:</p>
+    <h2>استخراج اطلاعات از کدهای HTML کپی شده</h2>
+    <p>کد HTML کپی شده از بخش Inspect Element را در کادر زیر قرار دهید:</p>
     
-    <label for="htmlInput">کد HTML:</label>
-    <textarea id="htmlInput" placeholder='کد <a link-identifier="..." ...> را اینجا وارد کنید...'></textarea>
-    
+    <textarea id="htmlInput" placeholder='کد HTML را اینجا وارد کنید. مثلاً: <a href="..." ...><span class="ld_Ec">Green House...</span></a>'></textarea>
     <button onclick="extractData()">استخراج اطلاعات</button>
-    
-    <div id="resultBox" class="result-box">
-        <h3 style="margin-top: 0; color: #28a745;">اطلاعات استخراج شده:</h3>
-        
-        <div class="result-item">
-            <span>شناسه محصول (ID):</span> 
-            <span id="prodId" style="color: #d9534f; font-family: monospace;">-</span>
-        </div>
-        
-        <div class="result-item">
-            <span>عنوان محصول:</span> 
-            <span id="prodTitle" style="color: #111;">-</span>
-        </div>
-        
-        <div class="result-item">
-            <span>لینک مستقیم محصول:</span> 
-            <a id="prodLink" href="#" target="_blank">-</a>
-        </div>
+
+    <div class="result" id="resultArea" style="display: none;">
+        <h3>نتیجه استخراج:</h3>
+        <p><strong>عنوان محصول:</strong> <span id="extractedTitle">-</span></p>
+        <p><strong>لینک محصول:</strong> <a id="extractedLink" class="product-link" href="#" target="_blank">-</a></p>
     </div>
 </div>
 
 <script>
 function extractData() {
     const rawHtml = document.getElementById('htmlInput').value;
-    const resultBox = document.getElementById('resultBox');
-    
     if (!rawHtml.trim()) {
-        alert('لطفا ابتدا کد HTML را وارد کنید.');
+        alert('لطفاً ابتدا کد HTML را وارد کنید.');
         return;
     }
 
-    // ایجاد یک المان فرضی برای پارس کردن آسان کدهای HTML وارد شده
+    // ایجاد یک المان موقت برای پارس کردن HTML
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = rawHtml;
-    
-    // پیدا کردن تگ a درون کد وارد شده
-    const anchorTag = tempDiv.querySelector('a');
-    
-    if (anchorTag) {
-        // ۱. استخراج شناسه محصول (link-identifier)
-        const id = anchorTag.getAttribute('link-identifier') || 'یافت نشد';
-        
-        // ۲. استخراج آدرس href و ساخت لینک کامل والمارت
-        let href = anchorTag.getAttribute('href') || '';
-        let fullLink = href;
-        if (href && href.startsWith('/')) {
-            fullLink = 'https://www.walmart.ca' + href;
-        }
 
-        // ۳. استخراج متن عنوان (پاک کردن کامنت‌های HTML و فضاهای خالی اضافه)
-        let title = '';
-        const spanTag = anchorTag.querySelector('span');
-        if (spanTag) {
-            title = spanTag.textContent.replace(//g, '').trim();
-        } else {
-            title = anchorTag.textContent.replace(//g, '').trim();
-        }
+    // پیدا کردن تگ a و span درون آن
+    const linkElement = tempDiv.querySelector('a');
+    const titleElement = tempDiv.querySelector('.ld_Ec') || tempDiv.querySelector('span');
 
-        // نمایش نتایج در صفحه
-        document.getElementById('prodId').innerText = id;
-        document.getElementById('prodTitle').innerText = title || 'یافت نشد';
+    if (linkElement && titleElement) {
+        // استخراج متن عنوان و حذف کامنت‌های احتمالی HTML
+        let titleText = titleElement.innerHTML.replace(//g, "").trim();
         
-        const linkElement = document.getElementById('prodLink');
-        if (fullLink) {
-            linkElement.href = fullLink;
-            linkElement.innerText = fullLink;
-        } else {
-            linkElement.innerText = 'یافت نشد';
-            linkElement.removeAttribute('href');
-        }
+        // استخراج لینک
+        let href = linkElement.getAttribute('href');
+        let fullLink = href.startsWith('http') ? href : 'https://www.walmart.ca' + href;
+
+        // نمایش نتایج
+        document.getElementById('extractedTitle').innerText = titleText;
+        document.getElementById('extractedLink').href = fullLink;
+        document.getElementById('extractedLink').innerText = fullLink;
         
-        // نشان دادن باکس نتیجه
-        resultBox.style.display = 'block';
+        document.getElementById('resultArea').style.display = 'block';
     } else {
-        alert('تگ <a> در کدهای وارد شده یافت نشد. لطفاً کد را بررسی کنید.');
-        resultBox.style.display = 'none';
+        alert('ساختار کد وارد شده خوانا نیست یا تگ‌های موردنظر پیدا نشدند.');
     }
 }
 </script>
