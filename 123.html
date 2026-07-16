@@ -2,108 +2,33 @@
 <html lang="fa" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نمایش داینامیک تصاویر والمارت</title>
+    <title>نمایش عکس والمارت (روی سرور ابری)</title>
     <style>
-        body {
-            font-family: Tahoma, sans-serif;
-            background-color: #f4f4f9;
-            text-align: center;
-            padding: 20px;
-        }
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            background: white;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-        input[type="text"] {
-            width: 80%;
-            padding: 10px;
-            margin-bottom: 15px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            text-align: left;
-        }
-        button {
-            padding: 10px 20px;
-            background-color: #0071dc;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-        }
-        button:hover {
-            background-color: #0050a0;
-        }
-        .image-box {
-            margin-top: 25px;
-            min-height: 200px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 2px dashed #ddd;
-            border-radius: 4px;
-        }
-        img {
-            max-width: 100%;
-            height: auto;
-            border-radius: 4px;
-        }
-        .error {
-            color: red;
-            margin-top: 10px;
-        }
+        body { font-family: Tahoma, sans-serif; background: #f0f2f5; text-align: center; padding: 40px; }
+        .box { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        input { width: 85%; padding: 10px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; text-align: left; }
+        button { padding: 10px 20px; background: #0071dc; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        img { max-width: 100%; margin-top: 20px; border-radius: 4px; border: 1px solid #ddd; }
     </style>
 </head>
 <body>
-
-<div class="container">
-    <h2>نمایش داینامیک تصاویر والمارت</h2>
-    <p>آدرس تصویر مورد نظر خود را وارد کنید:</p>
-    
-    <input type="text" id="imageUrl" placeholder="https://i5.walmartimages.ca/images/Enlarge/..." value="https://i5.walmartimages.ca/images/Enlarge/262/482/627735262482.jpg?skipOpt=1&odnHeight=580&odnWidth=580&odnBg=FFFFFF">
-    <br>
-    <button onclick="loadImage()">نمایش عکس</button>
-
-    <div class="image-box" id="imageContainer">
-        <span style="color: #888;">تصویر اینجا نمایش داده می‌شود</span>
+    <div class="box">
+        <h2>نمایش عکس والمارت (با هدر Referer)</h2>
+        <input type="text" id="imgUrl" placeholder="لینک عکس را وارد کنید" value="https://i5.walmartimages.ca/images/Enlarge/262/482/627735262482.jpg?skipOpt=1&odnHeight=580&odnWidth=580&odnBg=FFFFFF">
+        <br>
+        <button onclick="showImage()">نمایش عکس</button>
+        <div id="result"></div>
     </div>
-</div>
 
-<script>
-async function loadImage() {
-    const inputUrl = document.getElementById('imageUrl').value.trim();
-    const container = document.getElementById('imageContainer');
-    
-    if (!inputUrl) {
-        container.innerHTML = '<span class="error">لطفاً ابتدا لینک عکس را وارد کنید.</span>';
-        return;
-    }
-
-    container.innerHTML = '<span>در حال بارگذاری...</span>';
-
-    // استفاده از یک پراکسی عمومی برای دور زدن محدودیت CORS و شبیه‌سازی Referer
-    // این پراکسی هدر رفرنس والمارت را به سرور مقصد می‌فرستد تا عکس مسدود نشود
-    const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(inputUrl);
-
-    try {
-        const response = await fetch(proxyUrl);
-        if (!response.ok) throw new Error('خطا در دریافت تصویر از سرور واسط');
-        
-        const blob = await response.blob();
-        const objectURL = URL.createObjectURL(blob);
-        
-        container.innerHTML = `<img src="${objectURL}" alt="Walmart Product Image">`;
-    } catch (error) {
-        console.error(error);
-        container.innerHTML = `<span class="error">خطا در لود تصویر! ربات والمارت یا سیستم امنیتی مانع شد. <br> جزییات: ${error.message}</span>`;
-    }
-}
-</script>
-
+    <script>
+        function showImage() {
+            const link = document.getElementById('imgUrl').value.trim();
+            if(!link) return alert('لطفا لینک را وارد کنید');
+            
+            // آدرس را به فانکشن ورسل می‌فرستیم
+            const proxyUrl = '/api/get-image?img=' + encodeURIComponent(link);
+            document.getElementById('result').innerHTML = '<img src="' + proxyUrl + '" />';
+        }
+    </script>
 </body>
 </html>
