@@ -1,22 +1,22 @@
 const https = require('https');
 
-// تابع کمکی برای ارسال درخواست‌های HTTP به همراه هدرهای شبیه‌ساز مرورگر واقعی
-function fetchPage(urlAddress) {
+// استفاده از سرویس پراکسی عمومی که هدرها را به طور کامل شبیه‌سازی می‌کند
+function fetchPageViaProxy(targetUrl) {
     return new Promise((resolve, reject) => {
-        const options = {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.9',
-                'Cache-Control': 'no-cache',
-                'Pragma': 'no-cache'
-            }
-        };
+        // استفاده از پراکسی AllOrigins که معمولاً فایروال‌ها را به دلیل کش و توزیع آی‌پی دور می‌زند
+        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
 
-        https.get(urlAddress, options, (res) => {
+        https.get(proxyUrl, (res) => {
             let data = '';
             res.on('data', (chunk) => data += chunk);
-            res.on('end', () => resolve({ statusCode: res.statusCode, body: data, headers: res.headers }));
+            res.on('end', () => {
+                try {
+                    const parsed = JSON.parse(data);
+                    resolve(parsed.contents); // محتوای HTML صفحه اصلی والمارت
+                } catch (e) {
+                    reject(new Error('خطا در پارس کردن پاسخ پراکسی'));
+                }
+            });
         }).on('error', (err) => reject(err));
     });
 }
@@ -29,28 +29,24 @@ module.exports = async (req, res) => {
     }
 
     try {
-        // ۱. دانلود محتوای متنی صفحه سرچ والمارت
-        const pageData = await fetchPage(pageUrl);
-        
-        if (pageData.statusCode !== 200) {
-            return res.status(pageData.statusCode).send('کد خطا از سمت والمارت: ' + pageData.statusCode + ' (ربات تشخیص داده شد)');
+        // ۱. دریافت کدهای صفحه از طریق پراکسی واسطه
+        const html = await fetchPageViaProxy(pageUrl);
+
+        if (!html) {
+            return res.status(500).send('پراکسی موفق به دریافت صفحه نشد.');
         }
 
-        const html = pageData.body;
-
-        // ۲. پیدا کردن لینک عکس با استفاده از ریجکس (Regex) در سورس صفحه
-        // عکس‌های والمارت معمولا در دامنه‌ی walmartimages.com یا walmartimages.ca هستند
+        // ۲. پیدا کردن لینک عکس با ریجکس
         const imageRegex = /https:\/\/i5\.walmartimages\.(ca|com)\/images\/[^\s"']+/g;
         const matches = html.match(imageRegex);
 
         if (!matches || matches.length === 0) {
-            return res.status(404).send('هیچ عکسی برای این محصول در این صفحه یافت نشد. ممکن است صفحه با کپچا مسدود شده باشد.');
+            return res.status(404).send('عکسی پیدا نشد. احتمالاً صفحه کپچا داده است.');
         }
 
-        // تمیز کردن لینک عکس پیدا شده (حذف کاراکترهای اضافه احتمالاً چسبیده به ته لینک)
         let foundImageUrl = matches[0].replace(/&quot;/g, '').replace(/\\/g, '');
 
-        // ۳. حالا دانلود عکس اصلی با هدر Referer و فرستادن آن به کاربر
+        // ۳. دانلود و تحویل عکس با هدر رفرنس فرعی
         const imgOptions = {
             headers: {
                 'Referer': 'https://www.walmart.ca/',
@@ -63,10 +59,10 @@ module.exports = async (req, res) => {
             res.setHeader('Cache-Control', 'public, max-age=86400');
             imgRes.pipe(res);
         }).on('error', (e) => {
-            res.status(500).send('خطا در بارگیری نهایی عکس: ' + e.message);
+            res.status(500).send('خطا در لود نهایی عکس: ' + e.message);
         });
 
     } catch (error) {
-        res.status(500).send('خطای سرور: ' + error.message);
+        res.status(500).send('خطای فایروال: ' + error.message);
     }
 };
