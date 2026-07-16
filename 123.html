@@ -146,6 +146,7 @@
   .tag-register{ background:#E4EBF1; color:var(--steel); }
   .tag-add{ background:#F1E9E4; color:var(--steel-dark); }
   .tag-cvp{ background:#FBE7E2; color:var(--cvp-red); }
+  .tag-denied{ background:#FBEDE9; color:var(--danger); }
   .log-scroll{ max-height:320px; overflow-y:auto; border:1px solid var(--line); border-radius:10px; }
   .settings-row{ display:flex; align-items:center; justify-content:space-between; padding:14px 0; border-bottom:1px solid var(--line); }
   .settings-row:last-child{border-bottom:none;}
@@ -540,20 +541,57 @@
      than as plain text, so they aren't sitting in the page source
      as an obviously readable string. (Note: this is light
      obfuscation, not real secrecy — a static site can never fully
-     hide a client-side key. The anon key is designed to be safe
-     for the browser; access is controlled by the database's own
-     row-level security rules, not by hiding this value.)
+     hide a client-side key.)
 
-     To point the app at a different Supabase project instead,
-     replace SB_U / SB_K below with the base64 of your own Project
-     URL and anon public key (Project Settings -> API in Supabase).
+     SECURITY — read this:
+     By default, Supabase tables with an open "select/insert/update"
+     policy can be read and written by ANYONE who has this anon key,
+     directly through Supabase's REST API — completely bypassing this
+     app's login screen. To close that off, set up the secret-gated
+     functions described below and fill in SB_S. Until you do, treat
+     the database as readable/writable by anyone with this page's URL.
+
+     Hardening steps (run once in Supabase's SQL Editor):
+
+       revoke all on app_state from anon, authenticated;
+
+       create or replace function rpc_get_state(p_key text)
+       returns jsonb language plpgsql security definer set search_path = public as $$
+       begin
+         if p_key is distinct from 'CHOOSE-YOUR-OWN-SECRET' then
+           raise exception 'unauthorized';
+         end if;
+         return (select state from app_state where id = 1);
+       end; $$;
+
+       create or replace function rpc_save_state(p_key text, p_state jsonb)
+       returns void language plpgsql security definer set search_path = public as $$
+       begin
+         if p_key is distinct from 'CHOOSE-YOUR-OWN-SECRET' then
+           raise exception 'unauthorized';
+         end if;
+         update app_state set state = p_state, updated_at = now() where id = 1;
+       end; $$;
+
+       grant execute on function rpc_get_state(text) to anon, authenticated;
+       grant execute on function rpc_save_state(text, jsonb) to anon, authenticated;
+
+     Then set SB_S below to the base64 of the same secret you chose
+     (e.g. SB_S = btoa("your-secret") in your browser console).
+     This blocks direct table scraping — reads/writes only succeed
+     through these two gated functions. It is still not perfect
+     (the secret ships in this file, same limitation as the anon
+     key), but it stops casual/automated access far more effectively
+     than an open table policy.
      ============================================================ */
   const SB_U = "aHR0cHM6Ly9kdHVvZGpscGtvemVhenFweXB2YS5zdXBhYmFzZS5jbw==";
   const SB_K = "c2JfcHVibGlzaGFibGVfNTlyOHVfVC1HekhQNFl4c0ZKSkhTUV9MU3lWUzhZZw==";
+  const SB_S = ""; // base64 secret — leave empty until you run the SQL above
   const SUPABASE_URL = atob(SB_U);
   const SUPABASE_ANON_KEY = atob(SB_K);
+  const SB_SECRET = SB_S ? atob(SB_S) : "";
 
-  const APP_VERSION = 'v1.9.0';
+  const APP_VERSION = 'v2.0.0';
 
   const STATE_KEY = 'palletTrackerState_v3';
   const SESSION_KEY = 'palletTrackerSession_v3';
@@ -576,6 +614,7 @@
   let sbClient = null;
   let withdrawFeed = [];
   let lastWithdrawAction = null;
+  let lastSyncedAt = null;
 
   function defaultSettings(){
     return {
@@ -620,6 +659,11 @@
   async function loadState(){
     if(usingSupabase){
       try{
+        if(SB_SECRET){
+          const { data: result, error } = await sbClient.rpc('rpc_get_state', { p_key: SB_SECRET });
+          if(error) throw error;
+          return (result && Object.keys(result).length > 0) ? result : null;
+        }
         const { data: row, error } = await sbClient.from('app_state').select('state').eq('id', 1).single();
         if(error) throw error;
         return (row && row.state && Object.keys(row.state).length > 0) ? row.state : null;
@@ -636,9 +680,14 @@
     const bundle = currentStateBundle();
     localStorage.setItem(STATE_KEY, JSON.stringify(bundle));
     if(usingSupabase){
-      sbClient.from('app_state')
-        .upsert({ id: 1, state: bundle, updated_at: new Date().toISOString() })
-        .then(({ error }) => { if(error) console.error('Supabase save failed', error); });
+      if(SB_SECRET){
+        sbClient.rpc('rpc_save_state', { p_key: SB_SECRET, p_state: bundle })
+          .then(({ error }) => { if(error) console.error('Supabase save failed', error); });
+      } else {
+        sbClient.from('app_state')
+          .upsert({ id: 1, state: bundle, updated_at: new Date().toISOString() })
+          .then(({ error }) => { if(error) console.error('Supabase save failed', error); });
+      }
     }
   }
 
@@ -738,7 +787,9 @@
     document.getElementById('syncPill').textContent = usingSupabase ? 'Synced' : 'Local';
     document.getElementById('syncPill').className = 'sync-pill ' + (usingSupabase ? 'sync-on' : 'sync-off');
     applyTileVisibility();
-    setView('register');
+    // Show the dashboard only — no section opens automatically until the user picks one
+    document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
+    document.querySelectorAll('.tile').forEach(t => t.classList.remove('active'));
   }
 
   function applyTileVisibility(){
@@ -754,12 +805,27 @@
     document.getElementById('tileAdmin').classList.toggle('hidden', role !== 'admin');
   }
 
+  function roleHasTileAccess(view, role){
+    if(!TILE_LABELS[view]) return true;
+    return settings.tileVisibility[view] ? settings.tileVisibility[view][role] !== false : true;
+  }
+
   // ---------- VIEW SWITCHING ----------
   function setView(view){
-    if(view === 'admin' && (!currentUser || users[currentUser].role !== 'admin')){
-      showToast('Admin access only');
+    const role = (currentUser && users[currentUser]) ? users[currentUser].role : null;
+
+    if(view === 'admin'){
+      if(!role || role !== 'admin'){
+        logActivity('denied', `${currentUser || 'unknown user'} attempted to open Admin without permission`, currentUser);
+        showToast('Admin access only');
+        return;
+      }
+    } else if(!roleHasTileAccess(view, role)){
+      logActivity('denied', `${currentUser || 'unknown user'} attempted to open ${TILE_LABELS[view] || view} without permission`, currentUser);
+      showToast('You do not have access to this section');
       return;
     }
+
     document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
     document.getElementById('view-' + view).classList.remove('hidden');
     document.querySelectorAll('.tile').forEach(t => t.classList.remove('active'));
@@ -772,6 +838,14 @@
       document.getElementById('searchResult').innerHTML = '';
       document.getElementById('searchInput').value = '';
     }
+    if(view === 'withdraw') renderWithdrawFeed();
+    if(view === 'cvp') renderCvpView();
+    if(view === 'admin') renderAdmin();
+  }
+
+  function refreshActiveView(view){
+    if(view === 'register') refreshRegisterView();
+    if(view === 'inventory') renderInventory();
     if(view === 'withdraw') renderWithdrawFeed();
     if(view === 'cvp') renderCvpView();
     if(view === 'admin') renderAdmin();
@@ -1392,19 +1466,20 @@
     if(loaded) applyStateBundle(loaded);
 
     if(usingSupabase){
-      sbClient
-        .channel('app_state_changes')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'app_state' }, (payload) => {
-          if(payload.new && payload.new.state){
-            applyStateBundle(payload.new.state);
-            if(currentUser && users[currentUser]){
-              applyTileVisibility();
-              const activeView = Array.from(document.querySelectorAll('.view')).find(v => !v.classList.contains('hidden'));
-              if(activeView) setView(activeView.id.replace('view-', ''));
-            }
-          }
-        })
-        .subscribe();
+      // Polling instead of a realtime channel subscription: it works the same
+      // way whether or not the secret-gated RPC functions are enabled (a
+      // realtime channel needs direct table SELECT access, which the RPC
+      // hardening above intentionally removes).
+      setInterval(async () => {
+        const loaded = await loadState();
+        if(!loaded) return;
+        applyStateBundle(loaded);
+        if(currentUser && users[currentUser]){
+          applyTileVisibility();
+          const activeView = Array.from(document.querySelectorAll('.view')).find(v => !v.classList.contains('hidden'));
+          if(activeView) refreshActiveView(activeView.id.replace('view-', ''));
+        }
+      }, 12000);
     }
 
     document.getElementById('appVersionLabel').textContent = APP_VERSION;
