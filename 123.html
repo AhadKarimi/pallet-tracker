@@ -185,6 +185,7 @@
       </div>
       <h2>Pallet Tracker</h2>
       <p class="sub">Sign in to manage pallets and boxes</p>
+      <p class="hint" style="margin:-14px 0 20px;" id="appVersionLabelLogin"></p>
 
       <div class="auth-tabs">
         <div class="auth-tab active" id="tabSignin" onclick="switchAuthTab('signin')">Sign In</div>
@@ -233,7 +234,7 @@
         </div>
         <div>
           <h1>Pallet Tracker</h1>
-          <p>Manage pallets, locations and boxes</p>
+          <p>Manage pallets, locations and boxes · <span id="appVersionLabel"></span></p>
         </div>
       </div>
       <div class="user-chip">
@@ -330,12 +331,12 @@
 
         <div class="field">
           <label>Add box code</label>
-          <div class="code-input-row">
-            <input type="text" id="boxCodeInput" placeholder="Scan or type a box code, then press Enter" onkeydown="if(event.key==='Enter'){event.preventDefault();addBoxCodeToList();}">
-            <button class="btn btn-ghost" onclick="addBoxCodeToList()">Add</button>
-          </div>
           <div class="scan-btn-row">
-            <button class="btn btn-amber" onclick="openScanner('boxCodeInput', addBoxCodeToList)">📷 Scan with Camera</button>
+            <button class="btn btn-amber btn-block" onclick="openScanner('boxCodeInput', addBoxCodeToList)"><svg viewBox="0 0 24 24" width="16" height="16" style="flex-shrink:0;"><rect x="3" y="4" width="1.6" height="16" fill="currentColor"/><rect x="6.2" y="4" width="1" height="16" fill="currentColor"/><rect x="8.7" y="4" width="2.2" height="16" fill="currentColor"/><rect x="12.4" y="4" width="1" height="16" fill="currentColor"/><rect x="14.4" y="4" width="1.6" height="16" fill="currentColor"/><rect x="17.4" y="4" width="1" height="16" fill="currentColor"/><rect x="19.8" y="4" width="2.2" height="16" fill="currentColor"/></svg> Scan Barcode</button>
+          </div>
+          <div class="code-input-row" style="margin-top:10px;">
+            <input type="text" id="boxCodeInput" placeholder="Or type a code manually, then press Enter" onkeydown="if(event.key==='Enter'){event.preventDefault();addBoxCodeToList();}">
+            <button class="btn btn-ghost" onclick="addBoxCodeToList()">Add</button>
           </div>
           <div class="code-chip-list" id="pendingBoxList"></div>
           <p class="hint">Duplicate codes are not added twice — their counter goes up instead.</p>
@@ -353,13 +354,15 @@
 
         <div class="field">
           <label>Box code</label>
-          <div class="code-input-row">
-            <input type="text" id="withdrawCodeInput" placeholder="Scan or type a box code, then press Enter" onkeydown="if(event.key==='Enter'){event.preventDefault();handleFillingScan();}">
+          <div class="scan-btn-row">
+            <button class="btn btn-amber btn-block" onclick="openScanner('withdrawCodeInput', handleFillingScan)"><svg viewBox="0 0 24 24" width="16" height="16" style="flex-shrink:0;"><rect x="3" y="4" width="1.6" height="16" fill="currentColor"/><rect x="6.2" y="4" width="1" height="16" fill="currentColor"/><rect x="8.7" y="4" width="2.2" height="16" fill="currentColor"/><rect x="12.4" y="4" width="1" height="16" fill="currentColor"/><rect x="14.4" y="4" width="1.6" height="16" fill="currentColor"/><rect x="17.4" y="4" width="1" height="16" fill="currentColor"/><rect x="19.8" y="4" width="2.2" height="16" fill="currentColor"/></svg> Scan Barcode</button>
+          </div>
+          <div class="code-input-row" style="margin-top:10px;">
+            <input type="text" id="withdrawCodeInput" placeholder="Or type a code manually, then press Enter" onkeydown="if(event.key==='Enter'){event.preventDefault();handleFillingScan();}">
             <button class="btn btn-ghost" onclick="handleFillingScan()">Go</button>
           </div>
           <div class="scan-btn-row">
-            <button class="btn btn-amber" onclick="openScanner('withdrawCodeInput', handleFillingScan)">📷 Scan with Camera</button>
-            <button class="btn btn-ghost" onclick="revertLastWithdraw()">↩ Revert Last</button>
+            <button class="btn btn-ghost btn-block" onclick="revertLastWithdraw()">↩ Revert Last</button>
           </div>
         </div>
 
@@ -527,45 +530,30 @@
 
 <script>
   /* ============================================================
-     SHARED DATABASE — Supabase (so data never resets / disappears
-     and every device your team uses sees the same live data)
+     SHARED DATABASE — Supabase (already connected)
      ------------------------------------------------------------
-     One-time setup (~5 minutes):
+     This app is connected to a shared Supabase project so data is
+     saved centrally and stays in sync across every device — it
+     will not reset or disappear when a browser is cleared.
 
-     1. Go to https://supabase.com -> New project (free tier is enough).
+     The connection details below are stored base64-encoded rather
+     than as plain text, so they aren't sitting in the page source
+     as an obviously readable string. (Note: this is light
+     obfuscation, not real secrecy — a static site can never fully
+     hide a client-side key. The anon key is designed to be safe
+     for the browser; access is controlled by the database's own
+     row-level security rules, not by hiding this value.)
 
-     2. Once it's created, open the SQL Editor (left sidebar) and run
-        this exact script (paste it in and click "Run"):
-
-          create table app_state (
-            id int primary key,
-            state jsonb not null default '{}'::jsonb,
-            updated_at timestamptz default now()
-          );
-
-          insert into app_state (id, state) values (1, '{}'::jsonb);
-
-          alter table app_state enable row level security;
-
-          create policy "Allow anon read"   on app_state for select using (true);
-          create policy "Allow anon insert" on app_state for insert with check (true);
-          create policy "Allow anon update" on app_state for update using (true);
-
-     3. Left sidebar -> Database -> Replication -> turn ON replication
-        for the "app_state" table (this makes multi-device live-sync work).
-
-     4. Left sidebar -> Project Settings -> API. Copy the "Project URL"
-        and the "anon public" key into SUPABASE_URL / SUPABASE_ANON_KEY
-        below, then re-upload this file to GitHub.
-
-     Note: the anon key + these open policies mean anyone who has the
-     page URL can read/write this data — fine for a small internal team
-     tool, but don't use it for anything sensitive. Until you complete
-     this setup, the app keeps working fine on local storage only
-     (per device, no cross-device sync).
+     To point the app at a different Supabase project instead,
+     replace SB_U / SB_K below with the base64 of your own Project
+     URL and anon public key (Project Settings -> API in Supabase).
      ============================================================ */
-  const SUPABASE_URL = "https://dtuodjlpkozeazqpypva.supabase.co";
-  const SUPABASE_ANON_KEY = "sb_publishable_59r8u_T-GzHP4YxsFJJHSQ_LSyVS8Yg";
+  const SB_U = "aHR0cHM6Ly9kdHVvZGpscGtvemVhenFweXB2YS5zdXBhYmFzZS5jbw==";
+  const SB_K = "c2JfcHVibGlzaGFibGVfNTlyOHVfVC1HekhQNFl4c0ZKSkhTUV9MU3lWUzhZZw==";
+  const SUPABASE_URL = atob(SB_U);
+  const SUPABASE_ANON_KEY = atob(SB_K);
+
+  const APP_VERSION = 'v1.7.0';
 
   const STATE_KEY = 'palletTrackerState_v3';
   const SESSION_KEY = 'palletTrackerSession_v3';
@@ -1402,6 +1390,8 @@
         .subscribe();
     }
 
+    document.getElementById('appVersionLabel').textContent = APP_VERSION;
+    document.getElementById('appVersionLabelLogin').textContent = APP_VERSION;
     document.getElementById('bootShell').classList.add('hidden');
     switchAuthTab('signin');
 
