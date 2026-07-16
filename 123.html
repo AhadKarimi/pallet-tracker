@@ -399,7 +399,7 @@
     <div id="view-cvp" class="view hidden">
       <div class="panel">
         <h3>CVP Box</h3>
-        <p class="sub">Scan a red CVP box to check it out, then scan it again later to return it</p>
+        <p class="sub">Scan a red CVP box to check it out. To return it, just tap Return in the list below — no need to scan again.</p>
 
         <div class="field">
           <label>CVP box barcode</label>
@@ -553,7 +553,7 @@
   const SUPABASE_URL = atob(SB_U);
   const SUPABASE_ANON_KEY = atob(SB_K);
 
-  const APP_VERSION = 'v1.8.0';
+  const APP_VERSION = 'v1.9.0';
 
   const STATE_KEY = 'palletTrackerState_v3';
   const SESSION_KEY = 'palletTrackerSession_v3';
@@ -1117,6 +1117,11 @@
     return cvpSessions.find(s => s.boxCode === code && !s.returnedAt) || null;
   }
 
+  function isManagerRole(){
+    const role = users[currentUser] ? users[currentUser].role : 'associate';
+    return role === 'lead' || role === 'admin';
+  }
+
   function handleCvpScan(){
     const input = document.getElementById('cvpCodeInput');
     const code = input.value.trim();
@@ -1128,23 +1133,21 @@
     const feed = document.getElementById('cvpFeed');
 
     if(active){
-      feed.innerHTML = `
-        <div class="result-card">
-          <div class="found-code">CVP box ${escapeHtml(code)} is checked out</div>
-          <div>Checked out by <strong>${escapeHtml(active.checkedOutBy)}</strong></div>
-          <button class="btn btn-amber btn-sm" style="margin-top:10px" onclick="confirmCvpReturn('${escapeAttr(code)}')">Return</button>
-        </div>`;
-    } else {
-      const now = new Date().toISOString();
-      cvpSessions.push({
-        id: Date.now() + '-' + Math.random().toString(36).slice(2,7),
-        boxCode: code, checkedOutBy: currentUser, checkedOutAt: now,
-        returnedBy: null, returnedAt: null
-      });
-      logActivity('cvp', `${currentUser} checked out CVP box ${code}`);
-      showToast(`CVP box ${code} checked out`);
-      feed.innerHTML = `<div class="result-card"><div class="found-code">Checked out: ${escapeHtml(code)}</div></div>`;
+      const detail = isManagerRole() ? ` by ${escapeHtml(active.checkedOutBy)}` : '';
+      feed.innerHTML = `<div class="not-found">CVP box ${escapeHtml(code)} is already checked out${detail}. Use the Return button in the list below to return it.</div>`;
+      showToast(`CVP box ${code} is already checked out`);
+      return;
     }
+
+    const now = new Date().toISOString();
+    cvpSessions.push({
+      id: Date.now() + '-' + Math.random().toString(36).slice(2,7),
+      boxCode: code, checkedOutBy: currentUser, checkedOutAt: now,
+      returnedBy: null, returnedAt: null
+    });
+    logActivity('cvp', `${currentUser} checked out CVP box ${code}`);
+    showToast(`CVP box ${code} checked out`);
+    feed.innerHTML = `<div class="result-card"><div class="found-code">Checked out: ${escapeHtml(code)}</div></div>`;
     renderCvpView();
   }
 
@@ -1161,8 +1164,7 @@
 
   function renderCvpView(){
     renderCvpActiveList();
-    const role = users[currentUser] ? users[currentUser].role : 'associate';
-    const showHistory = role === 'lead' || role === 'admin';
+    const showHistory = isManagerRole();
     document.getElementById('cvpHistorySection').classList.toggle('hidden', !showHistory);
     if(showHistory) renderCvpHistoryTable();
   }
@@ -1171,13 +1173,16 @@
     const active = cvpSessions.filter(s => !s.returnedAt);
     const el = document.getElementById('cvpActiveList');
     if(active.length === 0){ el.innerHTML = '<p class="hint">No CVP boxes are currently checked out.</p>'; return; }
+    const showDetail = isManagerRole();
     el.innerHTML = active.map(s => `
       <div class="pallet-card">
         <div class="pallet-card-head">
-          <span class="pallet-tag">${escapeHtml(s.boxCode)}</span>
-          <div class="pallet-meta">Out since ${formatTime(s.checkedOutAt)}</div>
+          <div>
+            <span class="pallet-tag">${escapeHtml(s.boxCode)}</span>
+            ${showDetail ? `<div class="pallet-meta" style="margin-top:6px;">Checked out by ${escapeHtml(s.checkedOutBy)} · since ${formatTime(s.checkedOutAt)}</div>` : ''}
+          </div>
+          <button class="btn btn-amber btn-sm" onclick="confirmCvpReturn('${escapeAttr(s.boxCode)}')">Return</button>
         </div>
-        <div class="pallet-loc">Checked out by ${escapeHtml(s.checkedOutBy)}</div>
       </div>
     `).join('');
   }
