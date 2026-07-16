@@ -1,6 +1,34 @@
-<!doctype html><html><body>
-<input id="barcode" placeholder="Barcode">
-<button onclick="search()">Search</button>
-<h2 id="title"></h2><img id="image" width="250">
-<script src="script.js"></script>
-</body></html>
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>نمایش عکس والمارت (روی سرور ابری)</title>
+    <style>
+        body { font-family: Tahoma, sans-serif; background: #f0f2f5; text-align: center; padding: 40px; }
+        .box { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        input { width: 85%; padding: 10px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; text-align: left; }
+        button { padding: 10px 20px; background: #0071dc; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        img { max-width: 100%; margin-top: 20px; border-radius: 4px; border: 1px solid #ddd; }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h2>نمایش عکس والمارت (با هدر Referer)</h2>
+        <input type="text" id="imgUrl" placeholder="لینک عکس را وارد کنید" value="https://i5.walmartimages.ca/images/Enlarge/262/482/627735262482.jpg?skipOpt=1&odnHeight=580&odnWidth=580&odnBg=FFFFFF">
+        <br>
+        <button onclick="showImage()">نمایش عکس</button>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        function showImage() {
+            const link = document.getElementById('imgUrl').value.trim();
+            if(!link) return alert('لطفا لینک را وارد کنید');
+            
+            // آدرس را به فانکشن ورسل می‌فرستیم
+            const proxyUrl = '/api/get-image?img=' + encodeURIComponent(link);
+            document.getElementById('result').innerHTML = '<img src="' + proxyUrl + '" />';
+        }
+    </script>
+</body>
+</html>
