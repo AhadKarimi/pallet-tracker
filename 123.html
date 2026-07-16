@@ -543,22 +543,23 @@
      obfuscation, not real secrecy — a static site can never fully
      hide a client-side key.)
 
-     SECURITY — read this:
-     By default, Supabase tables with an open "select/insert/update"
-     policy can be read and written by ANYONE who has this anon key,
-     directly through Supabase's REST API — completely bypassing this
-     app's login screen. To close that off, set up the secret-gated
-     functions described below and fill in SB_S. Until you do, treat
-     the database as readable/writable by anyone with this page's URL.
+     ONE REMAINING STEP TO LOCK THE DATABASE DOWN:
+     A secret has already been generated and filled in below (SB_S),
+     and the app is already coded to use it. But the database itself
+     doesn't know about it yet — you must run the SQL below ONE TIME
+     in your Supabase project so the secret actually takes effect.
+     Until you run this, Supabase's table is still openly readable —
+     do this before sharing the GitHub Pages link with your team.
 
-     Hardening steps (run once in Supabase's SQL Editor):
+     Go to supabase.com -> your project -> SQL Editor -> paste this
+     exact block -> Run:
 
        revoke all on app_state from anon, authenticated;
 
        create or replace function rpc_get_state(p_key text)
        returns jsonb language plpgsql security definer set search_path = public as $$
        begin
-         if p_key is distinct from 'CHOOSE-YOUR-OWN-SECRET' then
+         if p_key is distinct from 'MO5LQVKwF9BsKGAYhiNPz1mPs8AtAg5NvDgGJ_co4o8' then
            raise exception 'unauthorized';
          end if;
          return (select state from app_state where id = 1);
@@ -567,7 +568,7 @@
        create or replace function rpc_save_state(p_key text, p_state jsonb)
        returns void language plpgsql security definer set search_path = public as $$
        begin
-         if p_key is distinct from 'CHOOSE-YOUR-OWN-SECRET' then
+         if p_key is distinct from 'MO5LQVKwF9BsKGAYhiNPz1mPs8AtAg5NvDgGJ_co4o8' then
            raise exception 'unauthorized';
          end if;
          update app_state set state = p_state, updated_at = now() where id = 1;
@@ -576,22 +577,24 @@
        grant execute on function rpc_get_state(text) to anon, authenticated;
        grant execute on function rpc_save_state(text, jsonb) to anon, authenticated;
 
-     Then set SB_S below to the base64 of the same secret you chose
-     (e.g. SB_S = btoa("your-secret") in your browser console).
-     This blocks direct table scraping — reads/writes only succeed
-     through these two gated functions. It is still not perfect
-     (the secret ships in this file, same limitation as the anon
-     key), but it stops casual/automated access far more effectively
-     than an open table policy.
+     After that: the table itself can no longer be read or written
+     directly (no policies remain), so pulling the anon key out of
+     this file no longer gets anyone your data — every read/write
+     must go through these two functions and match the secret above.
+     This is not perfect secrecy (the secret still ships in this
+     static file, an unavoidable limit of a backend-less site), but
+     it stops casual access, browser dev-tools poking, and automated
+     scraping, which is what an open table policy would otherwise
+     allow to anyone with the page URL.
      ============================================================ */
   const SB_U = "aHR0cHM6Ly9kdHVvZGpscGtvemVhenFweXB2YS5zdXBhYmFzZS5jbw==";
   const SB_K = "c2JfcHVibGlzaGFibGVfNTlyOHVfVC1HekhQNFl4c0ZKSkhTUV9MU3lWUzhZZw==";
-  const SB_S = ""; // base64 secret — leave empty until you run the SQL above
+  const SB_S = "TU81TFFWS3dGOUJzS0dBWWhpTlB6MW1QczhBdEFnNU52RGdHSl9jbzRvOA==";
   const SUPABASE_URL = atob(SB_U);
   const SUPABASE_ANON_KEY = atob(SB_K);
   const SB_SECRET = SB_S ? atob(SB_S) : "";
 
-  const APP_VERSION = 'v2.0.0';
+  const APP_VERSION = 'v2.1.0';
 
   const STATE_KEY = 'palletTrackerState_v3';
   const SESSION_KEY = 'palletTrackerSession_v3';
