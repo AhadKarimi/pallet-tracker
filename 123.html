@@ -7,8 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root{
     --bg: #F3EFE7;
@@ -528,32 +527,45 @@
 
 <script>
   /* ============================================================
-     OPTIONAL: SHARED DATABASE (multi-device sync via Firebase)
+     SHARED DATABASE — Supabase (so data never resets / disappears
+     and every device your team uses sees the same live data)
      ------------------------------------------------------------
-     Right now, if you leave this blank, the app stores everything
-     in THIS browser's local storage only — each device/browser has
-     its own separate data.
+     One-time setup (~5 minutes):
 
-     To make every device your team uses share ONE live database:
-     1. Go to https://console.firebase.google.com -> Add project (free).
-     2. In the project: Build -> Firestore Database -> Create database
-        (starting in "test mode" is fine to begin with).
-     3. Click the gear icon -> Project settings -> scroll to "Your apps"
-        -> click the </> (web) icon -> register the app.
-     4. Copy the firebaseConfig values it gives you into FIREBASE_CONFIG
+     1. Go to https://supabase.com -> New project (free tier is enough).
+
+     2. Once it's created, open the SQL Editor (left sidebar) and run
+        this exact script (paste it in and click "Run"):
+
+          create table app_state (
+            id int primary key,
+            state jsonb not null default '{}'::jsonb,
+            updated_at timestamptz default now()
+          );
+
+          insert into app_state (id, state) values (1, '{}'::jsonb);
+
+          alter table app_state enable row level security;
+
+          create policy "Allow anon read"   on app_state for select using (true);
+          create policy "Allow anon insert" on app_state for insert with check (true);
+          create policy "Allow anon update" on app_state for update using (true);
+
+     3. Left sidebar -> Database -> Replication -> turn ON replication
+        for the "app_state" table (this makes multi-device live-sync work).
+
+     4. Left sidebar -> Project Settings -> API. Copy the "Project URL"
+        and the "anon public" key into SUPABASE_URL / SUPABASE_ANON_KEY
         below, then re-upload this file to GitHub.
-     That's it — every device opening the page will read/write the same
-     shared data in real time. Until you do this, the app still works
-     great on a single device/browser.
+
+     Note: the anon key + these open policies mean anyone who has the
+     page URL can read/write this data — fine for a small internal team
+     tool, but don't use it for anything sensitive. Until you complete
+     this setup, the app keeps working fine on local storage only
+     (per device, no cross-device sync).
      ============================================================ */
-  const FIREBASE_CONFIG = {
-    apiKey: "",
-    authDomain: "",
-    projectId: "",
-    storageBucket: "",
-    messagingSenderId: "",
-    appId: ""
-  };
+  const SUPABASE_URL = "https://dtuodjlpkozeazqpypva.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_59r8u_T-GzHP4YxsFJJHSQ_LSyVS8Yg";
 
   const STATE_KEY = 'palletTrackerState_v3';
   const SESSION_KEY = 'palletTrackerSession_v3';
@@ -572,8 +584,8 @@
   let pendingBoxes = {};
   let registerMode = 'new';
   let html5QrCode = null;
-  let usingFirebase = false;
-  let stateDocRef = null;
+  let usingSupabase = false;
+  let sbClient = null;
   let withdrawFeed = [];
   let lastWithdrawAction = null;
 
@@ -590,17 +602,15 @@
     };
   }
 
-  // ---------- PERSISTENCE (localStorage, optionally mirrored to Firebase) ----------
-  function initFirebaseIfConfigured(){
-    if(FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.projectId && typeof firebase !== 'undefined'){
+  // ---------- PERSISTENCE (localStorage, mirrored to Supabase when configured) ----------
+  function initSupabaseIfConfigured(){
+    if(SUPABASE_URL && SUPABASE_ANON_KEY && typeof supabase !== 'undefined'){
       try{
-        firebase.initializeApp(FIREBASE_CONFIG);
-        const fs = firebase.firestore();
-        stateDocRef = fs.collection('palletTracker').doc('state');
-        usingFirebase = true;
+        sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        usingSupabase = true;
       }catch(e){
-        console.error('Firebase init failed, falling back to local storage only', e);
-        usingFirebase = false;
+        console.error('Supabase init failed, falling back to local storage only', e);
+        usingSupabase = false;
       }
     }
   }
@@ -620,12 +630,13 @@
   }
 
   async function loadState(){
-    if(usingFirebase){
+    if(usingSupabase){
       try{
-        const snap = await stateDocRef.get();
-        return snap.exists ? snap.data() : null;
+        const { data: row, error } = await sbClient.from('app_state').select('state').eq('id', 1).single();
+        if(error) throw error;
+        return (row && row.state && Object.keys(row.state).length > 0) ? row.state : null;
       }catch(e){
-        console.error('Firebase load failed, using local storage', e);
+        console.error('Supabase load failed, using local storage', e);
         return null;
       }
     }
@@ -636,8 +647,10 @@
   function persistState(){
     const bundle = currentStateBundle();
     localStorage.setItem(STATE_KEY, JSON.stringify(bundle));
-    if(usingFirebase){
-      stateDocRef.set(bundle).catch(e => console.error('Firebase save failed', e));
+    if(usingSupabase){
+      sbClient.from('app_state')
+        .upsert({ id: 1, state: bundle, updated_at: new Date().toISOString() })
+        .then(({ error }) => { if(error) console.error('Supabase save failed', error); });
     }
   }
 
@@ -734,8 +747,8 @@
     document.getElementById('userNameLabel').textContent = username;
     document.getElementById('avatarLetter').textContent = username.trim()[0].toUpperCase();
     document.getElementById('roleBadge').textContent = roleLabel(user.role);
-    document.getElementById('syncPill').textContent = usingFirebase ? 'Synced' : 'Local';
-    document.getElementById('syncPill').className = 'sync-pill ' + (usingFirebase ? 'sync-on' : 'sync-off');
+    document.getElementById('syncPill').textContent = usingSupabase ? 'Synced' : 'Local';
+    document.getElementById('syncPill').className = 'sync-pill ' + (usingSupabase ? 'sync-on' : 'sync-off');
     applyTileVisibility();
     setView('register');
   }
@@ -1349,8 +1362,8 @@
       onConfirm: () => {
         localStorage.removeItem(STATE_KEY);
         localStorage.removeItem(SESSION_KEY);
-        if(usingFirebase){
-          stateDocRef.delete().catch(() => {});
+        if(usingSupabase){
+          sbClient.from('app_state').upsert({ id: 1, state: {}, updated_at: new Date().toISOString() }).catch(() => {});
         }
         location.reload();
       }
@@ -1369,20 +1382,24 @@
 
   // ---------- INIT ----------
   (async function init(){
-    initFirebaseIfConfigured();
+    initSupabaseIfConfigured();
     const loaded = await loadState();
     if(loaded) applyStateBundle(loaded);
 
-    if(usingFirebase){
-      stateDocRef.onSnapshot(snap => {
-        if(!snap.exists) return;
-        applyStateBundle(snap.data());
-        if(currentUser && users[currentUser]){
-          applyTileVisibility();
-          const activeView = Array.from(document.querySelectorAll('.view')).find(v => !v.classList.contains('hidden'));
-          if(activeView) setView(activeView.id.replace('view-', ''));
-        }
-      });
+    if(usingSupabase){
+      sbClient
+        .channel('app_state_changes')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'app_state' }, (payload) => {
+          if(payload.new && payload.new.state){
+            applyStateBundle(payload.new.state);
+            if(currentUser && users[currentUser]){
+              applyTileVisibility();
+              const activeView = Array.from(document.querySelectorAll('.view')).find(v => !v.classList.contains('hidden'));
+              if(activeView) setView(activeView.id.replace('view-', ''));
+            }
+          }
+        })
+        .subscribe();
     }
 
     document.getElementById('bootShell').classList.add('hidden');
