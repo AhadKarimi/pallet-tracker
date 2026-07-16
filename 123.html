@@ -1,200 +1,1413 @@
 <!DOCTYPE html>
-<html lang="fa" dir="rtl">
+<html lang="en" dir="ltr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>استخراج‌کننده تصاویر والمارت</title>
-    <style>
-        body {
-            font-family: Tahoma, Arial, sans-serif;
-            background-color: #f4f6f9;
-            margin: 0;
-            padding: 20px;
-            text-align: center;
-        }
-        .container {
-            max-width: 800px;
-            background: #fff;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            margin: 0 auto;
-        }
-        h1 {
-            color: #0071dc; /* رنگ برند والمارت */
-            margin-bottom: 20px;
-        }
-        input[type="text"] {
-            width: 80%;
-            padding: 12px;
-            border: 2px solid #ccc;
-            border-radius: 5px;
-            font-size: 16px;
-            margin-bottom: 15px;
-            outline: none;
-            transition: border-color 0.3s;
-        }
-        input[type="text"]:focus {
-            border-color: #0071dc;
-        }
-        button {
-            padding: 12px 25px;
-            background-color: #ffc220; /* زرد والمارت */
-            color: #333;
-            border: none;
-            border-radius: 5px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
-        button:hover {
-            background-color: #e5ad1c;
-        }
-        .status {
-            margin-top: 15px;
-            font-weight: bold;
-            color: #555;
-        }
-        .gallery {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 20px;
-            margin-top: 30px;
-        }
-        .img-card {
-            background: #fdfdfd;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 10px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            transition: transform 0.2s;
-        }
-        .img-card:hover {
-            transform: scale(1.03);
-        }
-        .img-card img {
-            max-width: 100%;
-            height: auto;
-            border-radius: 5px;
-            display: block;
-            margin: 0 auto;
-        }
-        .img-card a {
-            display: block;
-            margin-top: 10px;
-            font-size: 12px;
-            color: #0071dc;
-            text-decoration: none;
-            word-break: break-all;
-        }
-        .img-card a:hover {
-            text-decoration: underline;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pallet Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<style>
+  :root{
+    --bg: #F3EFE7;
+    --panel: #FFFFFF;
+    --ink: #22282E;
+    --ink-soft: #5B6570;
+    --steel: #3E5060;
+    --steel-dark: #2A3742;
+    --amber: #E8A23D;
+    --amber-dark: #C6822A;
+    --line: #DCD5C6;
+    --danger: #B4472F;
+    --ok: #4B7B5E;
+    --radius: 10px;
+    --shadow: 0 2px 4px rgba(34,40,46,0.06), 0 8px 24px rgba(34,40,46,0.06);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Inter', system-ui, sans-serif;
+    min-height:100vh;
+    background-image:
+      repeating-linear-gradient(135deg, rgba(62,80,96,0.035) 0px, rgba(62,80,96,0.035) 2px, transparent 2px, transparent 26px);
+  }
+  .wrap{
+    max-width:900px;
+    margin:0 auto;
+    padding:28px 20px 60px;
+  }
+  .hero{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:16px;
+    margin-bottom:26px;
+    flex-wrap:wrap;
+  }
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:14px;
+  }
+  .brand-mark{
+    width:46px;height:46px;
+    border-radius:8px;
+    background:var(--steel-dark);
+    display:flex;align-items:center;justify-content:center;
+    position:relative;
+    flex-shrink:0;
+  }
+  .brand-mark svg{width:26px;height:26px;}
+  .brand h1{
+    font-size:20px;
+    font-weight:800;
+    margin:0;
+    letter-spacing:-0.2px;
+  }
+  .brand p{
+    margin:2px 0 0;
+    font-size:12.5px;
+    color:var(--ink-soft);
+    font-weight:500;
+  }
+  .user-chip{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:100px;
+    padding:6px 14px 6px 8px;
+    box-shadow:var(--shadow);
+    font-size:13.5px;
+  }
+  .user-chip .avatar{
+    width:28px;height:28px;
+    border-radius:50%;
+    background:var(--amber);
+    color:#fff;
+    display:flex;align-items:center;justify-content:center;
+    font-weight:700;
+    font-size:13px;
+  }
+  .role-badge{
+    font-size:10px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:0.4px;
+    background:#EFE9DA;
+    color:var(--steel-dark);
+    padding:2px 7px;
+    border-radius:100px;
+  }
+  .user-chip button{
+    border:none;
+    background:transparent;
+    color:var(--ink-soft);
+    font-family:inherit;
+    font-size:12.5px;
+    cursor:pointer;
+    text-decoration:underline;
+    padding:0;
+  }
+
+  .login-shell{
+    min-height:80vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .login-card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:16px;
+    box-shadow:var(--shadow);
+    padding:40px 34px;
+    width:100%;
+    max-width:400px;
+    text-align:center;
+    position:relative;
+    overflow:hidden;
+  }
+  .login-card::before{
+    content:"";
+    position:absolute;
+    inset:0 0 auto 0;
+    height:6px;
+    background:repeating-linear-gradient(90deg, var(--amber) 0 18px, var(--steel-dark) 18px 36px);
+  }
+  .login-mark{
+    width:58px;height:58px;
+    border-radius:12px;
+    background:var(--steel-dark);
+    display:flex;align-items:center;justify-content:center;
+    margin:6px auto 18px;
+  }
+  .login-mark svg{width:32px;height:32px;}
+  .login-card h2{
+    font-size:19px;
+    margin:0 0 6px;
+    font-weight:800;
+  }
+  .login-card p.sub{
+    color:var(--ink-soft);
+    font-size:13.5px;
+    margin:0 0 20px;
+  }
+  .auth-tabs{
+    display:flex;
+    background:#EFE9DA;
+    border-radius:8px;
+    padding:3px;
+    margin-bottom:22px;
+  }
+  .auth-tab{
+    flex:1;
+    text-align:center;
+    padding:8px 10px;
+    font-size:13px;
+    font-weight:700;
+    border-radius:6px;
+    cursor:pointer;
+    color:var(--ink-soft);
+  }
+  .auth-tab.active{
+    background:var(--panel);
+    color:var(--ink);
+    box-shadow:0 1px 3px rgba(0,0,0,0.08);
+  }
+  .field{
+    text-align:left;
+    margin-bottom:16px;
+  }
+  .field label{
+    display:block;
+    font-size:12.5px;
+    font-weight:600;
+    color:var(--ink-soft);
+    margin-bottom:6px;
+  }
+  input[type=text], input[type=number], input[type=password], select{
+    width:100%;
+    padding:11px 13px;
+    border-radius:8px;
+    border:1.5px solid var(--line);
+    background:#FBF9F4;
+    font-family:inherit;
+    font-size:14.5px;
+    color:var(--ink);
+    outline:none;
+    transition:border-color .15s;
+  }
+  input:focus, select:focus{
+    border-color:var(--steel);
+  }
+  .btn{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    border:none;
+    border-radius:8px;
+    padding:12px 18px;
+    font-family:inherit;
+    font-size:14.5px;
+    font-weight:700;
+    cursor:pointer;
+    transition:transform .1s, filter .15s;
+  }
+  .btn:active{transform:scale(0.98);}
+  .btn-primary{ background:var(--steel-dark); color:#fff; }
+  .btn-primary:hover{filter:brightness(1.12);}
+  .btn-amber{ background:var(--amber); color:#2A2113; }
+  .btn-amber:hover{filter:brightness(1.06);}
+  .btn-ghost{ background:transparent; color:var(--steel-dark); border:1.5px solid var(--line); }
+  .btn-ghost:hover{background:#eee9dc;}
+  .btn-danger-outline{ background:transparent; color:var(--danger); border:1.5px solid rgba(180,71,47,0.3); }
+  .btn-block{width:100%;}
+  .btn-sm{ padding:7px 11px; font-size:12px; }
+  .hint{font-size:12px;color:var(--ink-soft);margin-top:10px;}
+  .error-text{font-size:12.5px;color:var(--danger);margin-top:-8px;margin-bottom:14px;display:none;text-align:left;font-weight:600;}
+
+  .tiles{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(150px,1fr));
+    gap:14px;
+    margin-bottom:26px;
+  }
+  .tile{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:18px 14px;
+    text-align:center;
+    cursor:pointer;
+    box-shadow:var(--shadow);
+    transition:transform .12s, border-color .12s;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:8px;
+  }
+  .tile:hover{transform:translateY(-2px);border-color:var(--steel);}
+  .tile.active{
+    border-color:var(--amber-dark);
+    background:linear-gradient(180deg, #FFF9EE, #FFFFFF);
+  }
+  .tile-icon{
+    width:40px;height:40px;
+    border-radius:10px;
+    background:var(--steel-dark);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .tile.tile-admin .tile-icon{ background:var(--danger); }
+  .tile-icon svg{width:22px;height:22px;}
+  .tile span{font-size:13.5px;font-weight:700;}
+  .tile small{font-size:11px;color:var(--ink-soft);font-weight:500;}
+
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:14px;
+    box-shadow:var(--shadow);
+    padding:24px;
+    margin-bottom:20px;
+  }
+  .panel h3{ margin:0 0 4px; font-size:16.5px; font-weight:800; }
+  .panel .sub{ font-size:12.5px; color:var(--ink-soft); margin:0 0 18px; }
+  .row2{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .row3{ display:grid; grid-template-columns:1fr 1fr auto; gap:14px; align-items:end; }
+
+  .code-input-row{ display:flex; gap:8px; margin-bottom:10px; }
+  .code-input-row input{flex:1;}
+  .code-chip-list{ display:flex; flex-wrap:wrap; gap:8px; margin:12px 0 18px; min-height:20px; }
+  .code-chip{
+    background:#EFE9DA; border:1px solid var(--line); border-radius:100px;
+    padding:6px 10px 6px 8px; font-family:'JetBrains Mono', monospace; font-size:12.5px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .code-chip .qty{ background:var(--steel-dark); color:#fff; border-radius:6px; padding:1px 6px; font-size:11px; font-weight:700; }
+  .code-chip button{ border:none;background:transparent;color:var(--danger); cursor:pointer;font-size:14px;line-height:1;padding:0; }
+  .empty-state{ text-align:center; padding:30px 10px; color:var(--ink-soft); }
+  .empty-state svg{width:44px;height:44px;margin-bottom:10px;opacity:0.5;}
+  .empty-state p{margin:0;font-size:13.5px;}
+
+  .pallet-card{ border:1px solid var(--line); border-radius:12px; padding:16px 18px; margin-bottom:14px; background:#FDFCF9; }
+  .pallet-card-head{ display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:12px; flex-wrap:wrap; }
+  .pallet-tag{
+    font-family:'JetBrains Mono', monospace; font-weight:700; font-size:14px;
+    background:var(--steel-dark); color:#fff; padding:4px 10px; border-radius:6px; display:inline-block;
+  }
+  .pallet-loc{ font-size:13px; color:var(--ink-soft); font-weight:600; display:flex; align-items:center; gap:5px; margin-top:6px;}
+  .pallet-meta{font-size:11px;color:var(--ink-soft);}
+  .box-grid{ display:flex; flex-wrap:wrap; gap:8px; }
+  .box-item{
+    font-family:'JetBrains Mono', monospace; font-size:12px; background:#EFE9DA;
+    border:1px solid var(--line); border-radius:6px; padding:5px 9px; display:flex; align-items:center; gap:6px;
+  }
+  .box-item .qty{ background:var(--amber-dark); color:#fff; border-radius:4px; padding:0 5px; font-size:10.5px; font-weight:700; }
+  .pallet-actions{ display:flex; gap:8px; margin-top:12px; }
+
+  .search-row{ display:flex; gap:10px; align-items:stretch; }
+  .search-row .btn{ flex:0 0 auto; white-space:nowrap; }
+  .search-row input{flex:1;}
+  .search-result{ margin-top:18px; }
+  .result-card{
+    border:1.5px solid var(--ok); background:#F1F7F2; border-radius:10px; padding:14px 16px; margin-bottom:10px;
+  }
+  .result-card .found-code{ font-family:'JetBrains Mono', monospace; font-weight:700; font-size:13.5px; }
+  .not-found{
+    border:1.5px solid var(--danger); background:#FBEDE9; border-radius:10px; padding:14px 16px; color:var(--danger); font-size:13.5px; font-weight:600;
+  }
+
+  .scan-btn-row{ display:flex; gap:10px; margin-top:8px; }
+
+  .scanner-overlay{
+    position:fixed; inset:0; background:rgba(20,24,28,0.82);
+    display:flex; align-items:center; justify-content:center; z-index:60; padding:20px;
+  }
+  .scanner-box{
+    background:var(--panel); border-radius:14px; padding:20px; width:100%; max-width:420px; text-align:center;
+  }
+  .scanner-box h4{ margin:0 0 12px; font-size:15px; }
+  #qr-reader{ border-radius:10px; overflow:hidden; }
+
+  table.admin-table{ width:100%; border-collapse:collapse; font-size:13px; }
+  table.admin-table th{
+    text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:0.4px;
+    color:var(--ink-soft); padding:8px 10px; border-bottom:1.5px solid var(--line);
+  }
+  table.admin-table td{ padding:9px 10px; border-bottom:1px solid var(--line); vertical-align:middle; }
+  table.admin-table tr:last-child td{ border-bottom:none; }
+  .log-time{ font-family:'JetBrains Mono', monospace; font-size:11.5px; color:var(--ink-soft); white-space:nowrap; }
+  .tag-pill{ font-size:10.5px; font-weight:700; text-transform:uppercase; padding:2px 8px; border-radius:100px; }
+  .tag-login{ background:#E3F1E7; color:var(--ok); }
+  .tag-logout{ background:#EEE9DE; color:var(--ink-soft); }
+  .tag-withdraw{ background:#FBEDE0; color:var(--amber-dark); }
+  .tag-register{ background:#E4EBF1; color:var(--steel); }
+  .tag-add{ background:#F1E9E4; color:var(--steel-dark); }
+  .log-scroll{ max-height:320px; overflow-y:auto; border:1px solid var(--line); border-radius:10px; }
+  .settings-row{ display:flex; align-items:center; justify-content:space-between; padding:14px 0; border-bottom:1px solid var(--line); }
+  .settings-row:last-child{border-bottom:none;}
+  .settings-row .lbl{font-size:13.5px;font-weight:600;}
+  .settings-row .desc{font-size:12px;color:var(--ink-soft);margin-top:2px;}
+  .switch{ position:relative; width:44px; height:24px; flex-shrink:0; }
+  .switch input{ opacity:0; width:0; height:0; }
+  .slider{
+    position:absolute; cursor:pointer; inset:0; background:#CFC7B4; transition:.2s; border-radius:100px;
+  }
+  .slider:before{
+    content:""; position:absolute; height:18px; width:18px; left:3px; bottom:3px; background:white; transition:.2s; border-radius:50%;
+  }
+  input:checked + .slider{ background:var(--ok); }
+  input:checked + .slider:before{ transform:translateX(20px); }
+  .subhead{ font-size:13.5px; font-weight:800; margin:24px 0 10px; display:flex; align-items:center; gap:8px;}
+  .subhead:first-child{margin-top:0;}
+
+  .toast{
+    position:fixed; bottom:22px; left:50%; transform:translateX(-50%) translateY(10px);
+    background:var(--steel-dark); color:#fff; padding:11px 20px; border-radius:100px; font-size:13px; font-weight:600;
+    box-shadow:var(--shadow); opacity:0; pointer-events:none; transition:opacity .2s, transform .2s; z-index:50;
+    max-width:90vw; text-align:center;
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+  .hidden{display:none !important;}
+
+  @media (max-width:560px){
+    .row2, .row3{grid-template-columns:1fr;}
+    .login-card{padding:30px 22px;}
+  }
+</style>
 </head>
 <body>
 
-<div class="container">
-    <h1>استخراج تصاویر محصولات Walmart</h1>
-    <p>لینک جستجو یا لینک مستقیم محصول والمارت را در کادر زیر وارد کنید:</p>
-    
-    <input type="text" id="walmartUrl" placeholder="https://www.walmart.ca/en/search?q=..." value="https://www.walmart.ca/en/search?q=6000205460099">
-    <br>
-    <button onclick="extractImages()">استخراج تصاویر</button>
-    
-    <div id="status" class="status"></div>
-    <div id="gallery" class="gallery"></div>
+<div class="wrap">
+
+  <!-- LOGIN / SIGNUP SCREEN -->
+  <div id="loginShell" class="login-shell">
+    <div class="login-card">
+      <div class="login-mark">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M3 7L12 3L21 7M3 7L12 11M3 7V17L12 21M21 7L12 11M21 7V17L12 21M12 11V21" stroke="#E8A23D" stroke-width="1.8" stroke-linejoin="round"/></svg>
+      </div>
+      <h2>Pallet Tracker</h2>
+      <p class="sub">Sign in to manage pallets and boxes</p>
+
+      <div class="auth-tabs">
+        <div class="auth-tab active" id="tabSignin" onclick="switchAuthTab('signin')">Sign In</div>
+        <div class="auth-tab" id="tabSignup" onclick="switchAuthTab('signup')">Create Account</div>
+      </div>
+
+      <!-- SIGN IN FORM -->
+      <div id="signinForm">
+        <div class="field">
+          <label for="loginUsername">Username</label>
+          <input type="text" id="loginUsername" placeholder="e.g. ahad" autocomplete="username">
+        </div>
+        <div class="field">
+          <label for="loginPassword">Password</label>
+          <input type="password" id="loginPassword" placeholder="Your password" autocomplete="current-password" onkeydown="if(event.key==='Enter'){doLogin();}">
+        </div>
+        <div class="error-text" id="signinError"></div>
+        <button class="btn btn-primary btn-block" onclick="doLogin()">Sign In</button>
+      </div>
+
+      <!-- SIGN UP FORM -->
+      <div id="signupForm" class="hidden">
+        <div class="field">
+          <label for="signupUsername">Choose a username</label>
+          <input type="text" id="signupUsername" placeholder="e.g. ahad" autocomplete="username">
+        </div>
+        <div class="field">
+          <label for="signupPassword">Choose a password</label>
+          <input type="password" id="signupPassword" placeholder="At least 4 characters" autocomplete="new-password">
+        </div>
+        <div class="field">
+          <label for="signupPassword2">Confirm password</label>
+          <input type="password" id="signupPassword2" placeholder="Repeat password" autocomplete="new-password" onkeydown="if(event.key==='Enter'){doRegister();}">
+        </div>
+        <div class="error-text" id="signupError"></div>
+        <button class="btn btn-primary btn-block" onclick="doRegister()">Create Account</button>
+        <p class="hint" id="signupHint">The very first account created becomes the administrator.</p>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MAIN APP -->
+  <div id="appShell" class="hidden">
+    <div class="hero">
+      <div class="brand">
+        <div class="brand-mark">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M3 7L12 3L21 7M3 7L12 11M3 7V17L12 21M21 7L12 11M21 7V17L12 21M12 11V21" stroke="#E8A23D" stroke-width="1.8" stroke-linejoin="round"/></svg>
+        </div>
+        <div>
+          <h1>Pallet Tracker</h1>
+          <p>Manage pallets, locations and boxes</p>
+        </div>
+      </div>
+      <div class="user-chip">
+        <div class="avatar" id="avatarLetter">A</div>
+        <span id="userNameLabel">User</span>
+        <span class="role-badge" id="roleBadge">user</span>
+        <button onclick="doLogout()">Sign out</button>
+      </div>
+    </div>
+
+    <div class="tiles">
+      <div class="tile" id="tileRegister" onclick="setView('register')">
+        <div class="tile-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M12 5V19M5 12H19" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg></div>
+        <span>Add Pallet</span>
+        <small>Register pallets &amp; boxes</small>
+      </div>
+      <div class="tile" id="tileWithdraw" onclick="setView('withdraw')">
+        <div class="tile-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M4 12h16M4 12l5-5M4 12l5 5" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <span>Filling</span>
+        <small>Scan &amp; remove boxes</small>
+      </div>
+      <div class="tile" id="tileInventory" onclick="setView('inventory')">
+        <div class="tile-icon"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="7" height="7" rx="1" stroke="#fff" stroke-width="1.8"/><rect x="14" y="4" width="7" height="7" rx="1" stroke="#fff" stroke-width="1.8"/><rect x="3" y="13" width="7" height="7" rx="1" stroke="#fff" stroke-width="1.8"/><rect x="14" y="13" width="7" height="7" rx="1" stroke="#fff" stroke-width="1.8"/></svg></div>
+        <span>Inventory</span>
+        <small>View all pallets</small>
+      </div>
+      <div class="tile" id="tileSearch" onclick="setView('search')">
+        <div class="tile-icon"><svg viewBox="0 0 24 24" fill="none"><circle cx="10.5" cy="10.5" r="6.5" stroke="#fff" stroke-width="1.8"/><path d="M20 20L15.5 15.5" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+        <span>Search</span>
+        <small>Find a box code</small>
+      </div>
+      <div class="tile tile-admin hidden" id="tileAdmin" onclick="setView('admin')">
+        <div class="tile-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6l7-3z" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"/></svg></div>
+        <span>Admin</span>
+        <small>Users, log &amp; settings</small>
+      </div>
+    </div>
+
+    <!-- REGISTER VIEW -->
+    <div id="view-register" class="view hidden">
+      <div class="panel">
+        <h3>Add Pallet</h3>
+        <p class="sub">Create a new pallet, or add more boxes to one that already exists</p>
+
+        <div class="auth-tabs" style="margin-bottom:20px;">
+          <div class="auth-tab active" id="regTabNew" onclick="switchRegisterMode('new')">New Pallet</div>
+          <div class="auth-tab" id="regTabExisting" onclick="switchRegisterMode('existing')">Add to Existing</div>
+        </div>
+
+        <!-- NEW PALLET -->
+        <div id="regModeNew">
+          <div class="row2">
+            <div class="field">
+              <label>Pallet number (auto-generated)</label>
+              <input type="text" id="palletNumberInput" readonly>
+            </div>
+            <div class="field">
+              <label>Location</label>
+              <select id="locationSelectNew" onchange="onLocationSelectChange('New')">
+                <option value="Prep Room">Prep Room</option>
+                <option value="Cooler">Cooler</option>
+                <option value="Reefer">Reefer</option>
+                <option value="Market Bin">Market Bin</option>
+                <option value="__custom__">Custom...</option>
+              </select>
+              <input type="text" id="locationCustomNew" class="hidden" placeholder="Type a location name" style="margin-top:8px;">
+            </div>
+          </div>
+        </div>
+
+        <!-- ADD TO EXISTING PALLET -->
+        <div id="regModeExisting" class="hidden">
+          <div class="field">
+            <label>Select pallet</label>
+            <select id="existingPalletSelect" onchange="onExistingPalletSelect()"></select>
+          </div>
+          <div id="existingPalletSummary" class="field"></div>
+          <div class="field">
+            <label>Update location (optional)</label>
+            <select id="locationSelectEdit" onchange="onLocationSelectChange('Edit')">
+              <option value="Prep Room">Prep Room</option>
+              <option value="Cooler">Cooler</option>
+              <option value="Reefer">Reefer</option>
+              <option value="Market Bin">Market Bin</option>
+              <option value="__custom__">Custom...</option>
+            </select>
+            <input type="text" id="locationCustomEdit" class="hidden" placeholder="Type a location name" style="margin-top:8px;">
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Add box code</label>
+          <div class="code-input-row">
+            <input type="text" id="boxCodeInput" placeholder="Scan or type a box code, then press Enter" onkeydown="if(event.key==='Enter'){event.preventDefault();addBoxCodeToList();}">
+            <button class="btn btn-ghost" onclick="addBoxCodeToList()">Add</button>
+          </div>
+          <div class="scan-btn-row">
+            <button class="btn btn-amber" onclick="openScanner('boxCodeInput', addBoxCodeToList)">📷 Scan with Camera</button>
+          </div>
+          <div class="code-chip-list" id="pendingBoxList"></div>
+          <p class="hint">Duplicate codes are not added twice — their counter goes up instead.</p>
+        </div>
+
+        <button class="btn btn-amber btn-block" onclick="submitPallet()">Save Pallet</button>
+      </div>
+    </div>
+
+    <!-- WITHDRAW VIEW -->
+    <div id="view-withdraw" class="view hidden">
+      <div class="panel">
+        <h3>Filling</h3>
+        <p class="sub">Scan or enter a box code to pick it up and remove it from its pallet</p>
+
+        <div class="field">
+          <label>Box code</label>
+          <div class="code-input-row">
+            <input type="text" id="withdrawCodeInput" placeholder="Scan or type a box code" onkeydown="if(event.key==='Enter'){event.preventDefault();findWithdrawMatches();}">
+            <button class="btn btn-ghost" onclick="findWithdrawMatches()">Find</button>
+          </div>
+          <div class="scan-btn-row">
+            <button class="btn btn-amber" onclick="openScanner('withdrawCodeInput', findWithdrawMatches)">📷 Scan with Camera</button>
+          </div>
+        </div>
+
+        <div id="withdrawResults" class="search-result"></div>
+      </div>
+    </div>
+
+    <!-- INVENTORY VIEW -->
+    <div id="view-inventory" class="view hidden">
+      <div class="panel">
+        <h3>Pallet Inventory</h3>
+        <p class="sub">All pallets, their locations, and the boxes recorded on them</p>
+        <div id="inventoryList"></div>
+      </div>
+    </div>
+
+    <!-- SEARCH VIEW -->
+    <div id="view-search" class="view hidden">
+      <div class="panel">
+        <h3>Search a Box Code</h3>
+        <p class="sub">Enter a box code to see which pallet and location it's in</p>
+        <div class="search-row">
+          <input type="text" id="searchInput" placeholder="Box code..." onkeydown="if(event.key==='Enter'){event.preventDefault();doSearch();}">
+          <button class="btn btn-primary" onclick="doSearch()">Search</button>
+        </div>
+        <div class="scan-btn-row">
+          <button class="btn btn-amber" onclick="openScanner('searchInput', doSearch)">📷 Scan with Camera</button>
+        </div>
+        <div class="search-result" id="searchResult"></div>
+      </div>
+    </div>
+
+    <!-- ADMIN VIEW -->
+    <div id="view-admin" class="view hidden">
+      <div class="panel">
+        <h3>Admin Settings</h3>
+        <p class="sub">Core settings — visible to administrators only</p>
+
+        <div class="settings-row">
+          <div>
+            <div class="lbl">Allow users to create their own account</div>
+            <div class="desc">When off, only an admin can add new users below.</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="allowSelfRegisterToggle" onchange="toggleSelfRegister()">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="subhead">Add a user</div>
+        <div class="row3">
+          <div class="field" style="margin-bottom:0">
+            <label>Username</label>
+            <input type="text" id="adminNewUsername" placeholder="username">
+          </div>
+          <div class="field" style="margin-bottom:0">
+            <label>Temporary password</label>
+            <input type="text" id="adminNewPassword" placeholder="password">
+          </div>
+          <button class="btn btn-ghost" onclick="adminCreateUser()">Add user</button>
+        </div>
+
+        <div class="subhead">Users</div>
+        <div class="log-scroll">
+          <table class="admin-table" id="usersTable">
+            <thead><tr><th>Username</th><th>Role</th><th>Created</th><th></th></tr></thead>
+            <tbody id="usersTableBody"></tbody>
+          </table>
+        </div>
+
+        <div class="subhead">Activity Log — sign-ins, sign-outs &amp; scans</div>
+        <div class="log-scroll">
+          <table class="admin-table" id="logTable">
+            <thead><tr><th>Time</th><th>User</th><th>Action</th></tr></thead>
+            <tbody id="logTableBody"></tbody>
+          </table>
+        </div>
+
+        <div class="subhead">Data</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="btn btn-ghost" onclick="exportData()">Export data (.json)</button>
+          <button class="btn btn-danger-outline" onclick="clearAllData()">Clear all data</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
 </div>
 
+<!-- CAMERA SCANNER OVERLAY -->
+<div class="scanner-overlay hidden" id="scannerOverlay">
+  <div class="scanner-box">
+    <h4>Point the camera at a barcode or QR code</h4>
+    <div id="qr-reader"></div>
+    <button class="btn btn-ghost btn-block" style="margin-top:14px" onclick="closeScanner()">Cancel</button>
+  </div>
+</div>
+
+<!-- GENERIC CONFIRM / INPUT MODAL -->
+<div class="scanner-overlay hidden" id="modalOverlay">
+  <div class="scanner-box">
+    <h4 id="modalTitle">Title</h4>
+    <p class="sub" id="modalMessage" style="margin:-4px 0 16px;"></p>
+    <div class="field hidden" id="modalInputField" style="margin-bottom:16px;">
+      <input type="number" id="modalInput" min="1" onkeydown="if(event.key==='Enter'){event.preventDefault();handleModalConfirm();}">
+    </div>
+    <div style="display:flex; gap:10px;">
+      <button class="btn btn-ghost" style="flex:1" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-amber" style="flex:1" id="modalConfirmBtn" onclick="handleModalConfirm()">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
 <script>
-async function extractImages() {
-    const urlInput = document.getElementById('walmartUrl').value.trim();
-    const statusDiv = document.getElementById('status');
-    const galleryDiv = document.getElementById('gallery');
-    
-    // پاک کردن نتایج قبلی
-    galleryDiv.innerHTML = '';
-    
-    if (!urlInput) {
-        statusDiv.innerHTML = '<span style="color: red;">لطفاً یک لینک معتبر وارد کنید.</span>';
-        return;
+  const USERS_KEY = 'palletTrackerUsers_v2';
+  const DATA_KEY = 'palletTrackerData_v2';
+  const LOG_KEY = 'palletTrackerLog_v2';
+  const SETTINGS_KEY = 'palletTrackerSettings_v2';
+  const SESSION_KEY = 'palletTrackerSession_v2';
+  const MAX_LOG_ENTRIES = 400;
+
+  function loadJSON(key, fallback){
+    try{
+      const raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : fallback;
+    }catch(e){ return fallback; }
+  }
+  function saveJSON(key, value){ localStorage.setItem(key, JSON.stringify(value)); }
+
+  let users = loadJSON(USERS_KEY, {});
+  let data = loadJSON(DATA_KEY, { pallets: {} });
+  let activityLog = loadJSON(LOG_KEY, []);
+  let settings = loadJSON(SETTINGS_KEY, { allowSelfRegister: true });
+
+  let currentUser = null;
+  let pendingBoxes = {};
+  let currentView = 'register';
+  let html5QrCode = null;
+  let registerMode = 'new';
+  const LOCATION_PRESETS = ['Prep Room', 'Cooler', 'Reefer', 'Market Bin'];
+
+  if(typeof data.nextPalletSeq !== 'number'){
+    data.nextPalletSeq = 1;
+    saveData();
+  }
+
+  function saveUsers(){ saveJSON(USERS_KEY, users); }
+  function saveData(){ saveJSON(DATA_KEY, data); }
+  function saveSettings(){ saveJSON(SETTINGS_KEY, settings); }
+  function saveLog(){
+    if(activityLog.length > MAX_LOG_ENTRIES){
+      activityLog = activityLog.slice(activityLog.length - MAX_LOG_ENTRIES);
+    }
+    saveJSON(LOG_KEY, activityLog);
+  }
+
+  function logActivity(type, message, user){
+    activityLog.push({
+      type,
+      message,
+      user: user || currentUser || 'unknown',
+      time: new Date().toISOString()
+    });
+    saveLog();
+  }
+
+  // ---------- PASSWORD HASHING ----------
+  async function hashPassword(password){
+    const enc = new TextEncoder().encode(password);
+    const buf = await crypto.subtle.digest('SHA-256', enc);
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+  }
+
+  // ---------- AUTH TABS ----------
+  function switchAuthTab(tab){
+    document.getElementById('tabSignin').classList.toggle('active', tab==='signin');
+    document.getElementById('tabSignup').classList.toggle('active', tab==='signup');
+    document.getElementById('signinForm').classList.toggle('hidden', tab!=='signin');
+    document.getElementById('signupForm').classList.toggle('hidden', tab!=='signup');
+    document.getElementById('signinError').style.display='none';
+    document.getElementById('signupError').style.display='none';
+    if(tab==='signup' && !settings.allowSelfRegister && Object.keys(users).length>0){
+      document.getElementById('signupForm').innerHTML = '<p class="hint">Self sign-up is currently disabled. Ask an administrator to create your account.</p>';
+    }
+  }
+
+  function showFieldError(id, msg){
+    const el = document.getElementById(id);
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+
+  // ---------- LOGIN / REGISTER ----------
+  async function doLogin(){
+    const username = document.getElementById('loginUsername').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    document.getElementById('signinError').style.display = 'none';
+
+    if(!username || !password){
+      showFieldError('signinError', 'Enter both username and password.');
+      return;
+    }
+    const user = users[username];
+    if(!user){
+      showFieldError('signinError', 'No account found for that username.');
+      return;
+    }
+    const hash = await hashPassword(password);
+    if(hash !== user.passwordHash){
+      showFieldError('signinError', 'Incorrect password.');
+      return;
+    }
+    currentUser = username;
+    localStorage.setItem(SESSION_KEY, username);
+    logActivity('login', `${username} signed in`, username);
+    enterApp(username);
+  }
+
+  async function doRegister(){
+    const username = document.getElementById('signupUsername').value.trim();
+    const password = document.getElementById('signupPassword').value;
+    const password2 = document.getElementById('signupPassword2').value;
+    document.getElementById('signupError').style.display = 'none';
+
+    if(!settings.allowSelfRegister && Object.keys(users).length > 0){
+      showFieldError('signupError', 'Self sign-up is disabled. Ask an administrator.');
+      return;
+    }
+    if(!username || !password){
+      showFieldError('signupError', 'Enter a username and password.');
+      return;
+    }
+    if(users[username]){
+      showFieldError('signupError', 'That username is already taken.');
+      return;
+    }
+    if(password.length < 4){
+      showFieldError('signupError', 'Password must be at least 4 characters.');
+      return;
+    }
+    if(password !== password2){
+      showFieldError('signupError', 'Passwords do not match.');
+      return;
     }
 
-    statusDiv.innerHTML = 'در حال ارتباط با سرور و دریافت اطلاعات صفحه...';
+    const isFirstUser = Object.keys(users).length === 0;
+    const passwordHash = await hashPassword(password);
+    users[username] = {
+      passwordHash,
+      role: isFirstUser ? 'admin' : 'user',
+      createdAt: new Date().toISOString()
+    };
+    saveUsers();
+    logActivity('register', `${username} created an account${isFirstUser ? ' (first user, made admin)' : ''}`, username);
 
-    // استفاده از پروکسی AllOrigins برای دور زدن محدودیت CORS مرورگر
-    const proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(urlInput);
+    currentUser = username;
+    localStorage.setItem(SESSION_KEY, username);
+    logActivity('login', `${username} signed in`, username);
+    enterApp(username);
+  }
 
-    try {
-        const response = await fetch(proxyUrl);
-        if (!response.ok) {
-            throw new Error('عدم دریافت پاسخ مناسب از پروکسی.');
-        }
-        
-        const data = await response.json();
-        const htmlContent = data.contents; // محتوای HTML صفحه اصلی والمارت
-        
-        // ایجاد یک سند مجازی برای پارس کردن HTML
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(htmlContent, 'text/html');
-        
-        // پیدا کردن تگ‌های تصویر مرتبط با فرمت تصاویر والمارت
-        const imgTags = doc.querySelectorAll('img');
-        const imageUrls = new Set(); // استفاده از Set برای جلوگیری از تصاویر تکراری
-
-        imgTags.forEach(img => {
-            const src = img.getAttribute('src') || '';
-            const srcset = img.getAttribute('srcset') || '';
-            const dataSrc = img.getAttribute('data-src') || '';
-
-            // بررسی آدرس‌ها برای مطابقت با دامنه تصاویر والمارت
-            [src, dataSrc, ...srcset.split(' ')].forEach(url => {
-                if (url && (url.includes('walmartimages.ca') || url.includes('walmartimages.com'))) {
-                    // تمیزکاری آدرس‌ها (حذف کوئری‌های سایزبندی غیرضروری در صورت نیاز)
-                    let cleanUrl = url.trim();
-                    if (cleanUrl.startsWith('//')) {
-                        cleanUrl = 'https:' + cleanUrl;
-                    }
-                    // فیلتر کردن تصاویر بسیار کوچک یا آیکون‌ها
-                    if (cleanUrl.includes('/images/') && !cleanUrl.includes('sprite') && cleanUrl.startsWith('http')) {
-                        imageUrls.add(cleanUrl);
-                    }
-                }
-            });
-        });
-
-        // نمایش تصاویر پیدا شده
-        if (imageUrls.size === 0) {
-            statusDiv.innerHTML = '<span style="color: orange;">تصویری با این مشخصات در صفحه یافت نشد. ممکن است ساختار صفحه تغییر کرده باشد یا آی‌پی شما بلاک شده باشد.</span>';
-            return;
-        }
-
-        statusDiv.innerHTML = `موفقیت‌آمیز! تعداد <span style="color: green;">${imageUrls.size}</span> تصویر پیدا شد.`;
-
-        imageUrls.forEach(url => {
-            const card = document.createElement('div');
-            card.className = 'img-card';
-
-            const img = document.createElement('img');
-            img.src = url;
-            img.alt = "Walmart Image";
-
-            const link = document.createElement('a');
-            link.href = url;
-            link.target = "_blank";
-            link.innerText = "مشاهده سایز اصلی تصویر";
-
-            card.appendChild(img);
-            card.appendChild(link);
-            galleryDiv.appendChild(card);
-        });
-
-    } catch (error) {
-        console.error(error);
-        statusDiv.innerHTML = '<span style="color: red;">خطایی در دریافت اطلاعات رخ داد. لطفاً چند لحظه دیگر دوباره تلاش کنید.</span>';
+  function doLogout(){
+    if(currentUser){
+      logActivity('logout', `${currentUser} signed out`, currentUser);
     }
-}
+    currentUser = null;
+    localStorage.removeItem(SESSION_KEY);
+    document.getElementById('appShell').classList.add('hidden');
+    document.getElementById('loginShell').classList.remove('hidden');
+    document.getElementById('loginUsername').value = '';
+    document.getElementById('loginPassword').value = '';
+    switchAuthTab('signin');
+  }
+
+  function enterApp(username){
+    const user = users[username];
+    document.getElementById('loginShell').classList.add('hidden');
+    document.getElementById('appShell').classList.remove('hidden');
+    document.getElementById('userNameLabel').textContent = username;
+    document.getElementById('avatarLetter').textContent = username.trim()[0].toUpperCase();
+    document.getElementById('roleBadge').textContent = user.role;
+    document.getElementById('tileAdmin').classList.toggle('hidden', user.role !== 'admin');
+    setView('register');
+  }
+
+  // ---------- VIEW SWITCHING ----------
+  function setView(view){
+    if(view === 'admin' && (!currentUser || users[currentUser].role !== 'admin')){
+      showToast('Admin access only');
+      return;
+    }
+    currentView = view;
+    document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
+    document.getElementById('view-' + view).classList.remove('hidden');
+    document.querySelectorAll('.tile').forEach(t => t.classList.remove('active'));
+    const tileId = 'tile' + view.charAt(0).toUpperCase() + view.slice(1);
+    const tileEl = document.getElementById(tileId);
+    if(tileEl) tileEl.classList.add('active');
+
+    if(view === 'register') refreshRegisterView();
+    if(view === 'inventory') renderInventory();
+    if(view === 'search'){
+      document.getElementById('searchResult').innerHTML = '';
+      document.getElementById('searchInput').value = '';
+    }
+    if(view === 'withdraw'){
+      document.getElementById('withdrawResults').innerHTML = '';
+    }
+    if(view === 'admin') renderAdmin();
+  }
+
+  // ---------- TOAST ----------
+  let toastTimer;
+  function showToast(msg){
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
+  }
+
+  // ---------- REGISTER PALLET ----------
+  function computeNextPalletNumber(){
+    return `P-${String(data.nextPalletSeq).padStart(2, '0')}`;
+  }
+
+  function switchRegisterMode(mode){
+    registerMode = mode;
+    document.getElementById('regTabNew').classList.toggle('active', mode === 'new');
+    document.getElementById('regTabExisting').classList.toggle('active', mode === 'existing');
+    document.getElementById('regModeNew').classList.toggle('hidden', mode !== 'new');
+    document.getElementById('regModeExisting').classList.toggle('hidden', mode !== 'existing');
+    if(mode === 'new'){
+      document.getElementById('palletNumberInput').value = computeNextPalletNumber();
+      document.getElementById('locationSelectNew').value = 'Prep Room';
+      onLocationSelectChange('New');
+    } else {
+      populateExistingPalletDropdown();
+    }
+  }
+
+  function onLocationSelectChange(suffix){
+    const select = document.getElementById('locationSelect' + suffix);
+    const custom = document.getElementById('locationCustom' + suffix);
+    custom.classList.toggle('hidden', select.value !== '__custom__');
+  }
+
+  function populateExistingPalletDropdown(){
+    const select = document.getElementById('existingPalletSelect');
+    const keys = Object.keys(data.pallets);
+    if(keys.length === 0){
+      select.innerHTML = '<option value="">No pallets yet — create one first</option>';
+      document.getElementById('existingPalletSummary').innerHTML = '';
+      return;
+    }
+    select.innerHTML = keys.map(key => `<option value="${escapeAttr(key)}">${escapeHtml(key)} — ${escapeHtml(data.pallets[key].location)}</option>`).join('');
+    onExistingPalletSelect();
+  }
+
+  function preselectExistingPallet(key){
+    switchRegisterMode('existing');
+    const select = document.getElementById('existingPalletSelect');
+    select.value = key;
+    onExistingPalletSelect();
+  }
+
+  function onExistingPalletSelect(){
+    const key = document.getElementById('existingPalletSelect').value;
+    const summary = document.getElementById('existingPalletSummary');
+    if(!key || !data.pallets[key]){ summary.innerHTML = ''; return; }
+    const p = data.pallets[key];
+    const codes = Object.keys(p.boxes);
+    const boxesHtml = codes.length
+      ? codes.map(code => `<div class="box-item"><span>${escapeHtml(code)}</span><span class="qty">x${p.boxes[code]}</span></div>`).join('')
+      : '<span class="pallet-meta">No boxes on this pallet yet</span>';
+    summary.innerHTML = `<label>Currently on this pallet</label><div class="box-grid">${boxesHtml}</div>`;
+
+    const locSelect = document.getElementById('locationSelectEdit');
+    if(LOCATION_PRESETS.includes(p.location)){
+      locSelect.value = p.location;
+      document.getElementById('locationCustomEdit').classList.add('hidden');
+    } else {
+      locSelect.value = '__custom__';
+      document.getElementById('locationCustomEdit').value = p.location;
+      document.getElementById('locationCustomEdit').classList.remove('hidden');
+    }
+  }
+
+  function refreshRegisterView(){
+    switchRegisterMode(registerMode);
+  }
+
+  function addBoxCodeToList(){
+    const input = document.getElementById('boxCodeInput');
+    const code = input.value.trim();
+    if(!code){ input.focus(); return; }
+    pendingBoxes[code] = (pendingBoxes[code] || 0) + 1;
+    input.value = '';
+    input.focus();
+    renderPendingBoxes();
+  }
+
+  function removePendingBox(code){
+    delete pendingBoxes[code];
+    renderPendingBoxes();
+  }
+
+  function renderPendingBoxes(){
+    const container = document.getElementById('pendingBoxList');
+    const codes = Object.keys(pendingBoxes);
+    container.innerHTML = codes.map(code => `
+      <div class="code-chip">
+        <span>${escapeHtml(code)}</span>
+        <span class="qty">x${pendingBoxes[code]}</span>
+        <button onclick="removePendingBox('${escapeAttr(code)}')" title="Remove">✕</button>
+      </div>
+    `).join('');
+  }
+
+  function resolveLocationValue(suffix){
+    const select = document.getElementById('locationSelect' + suffix);
+    if(select.value === '__custom__'){
+      return document.getElementById('locationCustom' + suffix).value.trim();
+    }
+    return select.value;
+  }
+
+  function submitPallet(){
+    if(Object.keys(pendingBoxes).length === 0){ showToast('Add at least one box code'); return; }
+
+    if(registerMode === 'new'){
+      const locationRaw = resolveLocationValue('New');
+      if(!locationRaw){ showToast('Choose or enter a location'); return; }
+
+      const key = computeNextPalletNumber();
+      data.pallets[key] = { location: locationRaw, boxes: {}, createdBy: currentUser, createdAt: new Date().toISOString() };
+      Object.entries(pendingBoxes).forEach(([code, qty]) => {
+        data.pallets[key].boxes[code] = (data.pallets[key].boxes[code] || 0) + qty;
+      });
+      data.nextPalletSeq += 1;
+      saveData();
+
+      const totalAdded = Object.values(pendingBoxes).reduce((a,b)=>a+b,0);
+      logActivity('add', `Created pallet ${key} at ${locationRaw} with ${totalAdded} box(es)`);
+      showToast(`Pallet ${key} saved`);
+
+      pendingBoxes = {};
+      renderPendingBoxes();
+      document.getElementById('boxCodeInput').value = '';
+      switchRegisterMode('new');
+    } else {
+      const key = document.getElementById('existingPalletSelect').value;
+      if(!key || !data.pallets[key]){ showToast('Select a pallet first'); return; }
+
+      const locationRaw = resolveLocationValue('Edit');
+      if(locationRaw) data.pallets[key].location = locationRaw;
+
+      Object.entries(pendingBoxes).forEach(([code, qty]) => {
+        data.pallets[key].boxes[code] = (data.pallets[key].boxes[code] || 0) + qty;
+      });
+      saveData();
+
+      const totalAdded = Object.values(pendingBoxes).reduce((a,b)=>a+b,0);
+      logActivity('add', `Added ${totalAdded} box(es) to pallet ${key} (${data.pallets[key].location})`);
+      showToast(`Pallet ${key} updated`);
+
+      pendingBoxes = {};
+      renderPendingBoxes();
+      document.getElementById('boxCodeInput').value = '';
+      onExistingPalletSelect();
+    }
+  }
+
+  function goAddToPallet(key){
+    setView('register');
+    preselectExistingPallet(key);
+  }
+
+  // ---------- INVENTORY ----------
+  function renderInventory(){
+    const container = document.getElementById('inventoryList');
+    const palletKeys = Object.keys(data.pallets);
+
+    if(palletKeys.length === 0){
+      container.innerHTML = `
+        <div class="empty-state">
+          <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="7" height="7" rx="1" stroke="#5B6570" stroke-width="1.6"/><rect x="14" y="4" width="7" height="7" rx="1" stroke="#5B6570" stroke-width="1.6"/><rect x="3" y="13" width="7" height="7" rx="1" stroke="#5B6570" stroke-width="1.6"/><rect x="14" y="13" width="7" height="7" rx="1" stroke="#5B6570" stroke-width="1.6"/></svg>
+          <p>No pallets have been added yet</p>
+        </div>`;
+      return;
+    }
+
+    container.innerHTML = palletKeys.map(key => {
+      const p = data.pallets[key];
+      const boxCodes = Object.keys(p.boxes);
+      const totalBoxes = Object.values(p.boxes).reduce((a,b) => a+b, 0);
+      const boxesHtml = boxCodes.length
+        ? boxCodes.map(code => `
+            <div class="box-item">
+              <span>${escapeHtml(code)}</span>
+              <span class="qty">x${p.boxes[code]}</span>
+            </div>`).join('')
+        : `<span class="pallet-meta">No boxes on this pallet</span>`;
+
+      return `
+        <div class="pallet-card">
+          <div class="pallet-card-head">
+            <div>
+              <span class="pallet-tag">${escapeHtml(key)}</span>
+              <div class="pallet-loc">📍 ${escapeHtml(p.location)}</div>
+            </div>
+            <div class="pallet-meta">${totalBoxes} boxes · ${boxCodes.length} unique code(s)</div>
+          </div>
+          <div class="box-grid">${boxesHtml}</div>
+          <div class="pallet-actions">
+            <button class="btn btn-ghost btn-sm" onclick="goAddToPallet('${escapeAttr(key)}')">➕ Add boxes</button>
+            <button class="btn btn-danger-outline btn-sm" onclick="deletePallet('${escapeAttr(key)}')">Delete pallet</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function deletePallet(key){
+    openModal({
+      title: 'Delete pallet?',
+      message: `This will delete pallet ${key} and all its recorded boxes.`,
+      confirmText: 'Delete',
+      onConfirm: () => {
+        delete data.pallets[key];
+        saveData();
+        logActivity('add', `Deleted pallet ${key}`);
+        renderInventory();
+        showToast('Pallet deleted');
+      }
+    });
+  }
+
+  // ---------- SEARCH ----------
+  function doSearch(){
+    const input = document.getElementById('searchInput');
+    const code = input.value.trim();
+    const resultBox = document.getElementById('searchResult');
+    if(!code){ input.focus(); return; }
+
+    const matches = [];
+    Object.entries(data.pallets).forEach(([key, p]) => {
+      if(p.boxes[code]) matches.push({ pallet: key, location: p.location, qty: p.boxes[code] });
+    });
+
+    if(matches.length === 0){
+      resultBox.innerHTML = `<div class="not-found">Code "${escapeHtml(code)}" was not found in any pallet.</div>`;
+      return;
+    }
+    resultBox.innerHTML = matches.map(m => `
+      <div class="result-card">
+        <div class="found-code">Code: ${escapeHtml(code)}</div>
+        <div>📦 Pallet: <strong>${escapeHtml(m.pallet)}</strong></div>
+        <div>📍 Location: <strong>${escapeHtml(m.location)}</strong></div>
+        <div>Quantity on this pallet: <strong>${m.qty}</strong></div>
+      </div>
+    `).join('');
+  }
+
+  // ---------- WITHDRAW ----------
+  function findWithdrawMatches(){
+    const code = document.getElementById('withdrawCodeInput').value.trim();
+    const resultsEl = document.getElementById('withdrawResults');
+    if(!code){ return; }
+
+    const matches = [];
+    Object.entries(data.pallets).forEach(([key, p]) => {
+      if(p.boxes[code]) matches.push({ pallet: key, location: p.location, qty: p.boxes[code] });
+    });
+
+    if(matches.length === 0){
+      resultsEl.innerHTML = `<div class="not-found">Code "${escapeHtml(code)}" was not found on any pallet.</div>`;
+      return;
+    }
+
+    resultsEl.innerHTML = matches.map(m => `
+      <div class="result-card">
+        <div class="found-code">Code: ${escapeHtml(code)}</div>
+        <div>📦 Pallet: <strong>${escapeHtml(m.pallet)}</strong></div>
+        <div>📍 Location: <strong>${escapeHtml(m.location)}</strong></div>
+        <div>Available: <strong>${m.qty}</strong></div>
+        <button class="btn btn-amber btn-sm" style="margin-top:10px" onclick="withdrawFromPallet('${escapeAttr(m.pallet)}','${escapeAttr(code)}')">Withdraw from this pallet</button>
+      </div>
+    `).join('');
+  }
+
+  function withdrawFromPallet(palletKey, code){
+    const p = data.pallets[palletKey];
+    if(!p || !p.boxes[code]){
+      showToast('That item is no longer available');
+      findWithdrawMatches();
+      return;
+    }
+    const available = p.boxes[code];
+
+    if(available > 1){
+      openModal({
+        title: 'How many do you want to withdraw?',
+        message: `We have ${available} of "${code}" on pallet ${palletKey}.`,
+        showInput: true,
+        inputValue: available,
+        inputMin: 1,
+        confirmText: 'Withdraw',
+        onConfirm: (qty) => {
+          if(!qty || qty < 1){ showToast('Enter a valid quantity'); return; }
+          completeWithdraw(palletKey, code, Math.min(qty, available));
+        }
+      });
+    } else {
+      completeWithdraw(palletKey, code, 1);
+    }
+  }
+
+  function completeWithdraw(palletKey, code, qty){
+    const p = data.pallets[palletKey];
+    if(!p || !p.boxes[code]) return;
+    p.boxes[code] -= qty;
+    if(p.boxes[code] <= 0) delete p.boxes[code];
+    saveData();
+    logActivity('withdraw', `Withdrew ${qty} x "${code}" from pallet ${palletKey} (${p.location})`);
+    showToast(`Withdrew ${qty} from ${palletKey}`);
+    findWithdrawMatches();
+  }
+
+  // ---------- GENERIC MODAL (replaces native confirm()/prompt(), which get blocked in sandboxed previews) ----------
+  let modalConfirmCallback = null;
+
+  function openModal({ title, message, showInput = false, inputValue = 1, inputMin = 1, confirmText = 'Confirm', onConfirm }){
+    document.getElementById('modalTitle').textContent = title;
+    document.getElementById('modalMessage').textContent = message;
+    const inputField = document.getElementById('modalInputField');
+    const input = document.getElementById('modalInput');
+    if(showInput){
+      inputField.classList.remove('hidden');
+      input.value = inputValue;
+      input.min = inputMin;
+    } else {
+      inputField.classList.add('hidden');
+    }
+    document.getElementById('modalConfirmBtn').textContent = confirmText;
+    modalConfirmCallback = onConfirm;
+    document.getElementById('modalOverlay').classList.remove('hidden');
+    if(showInput) setTimeout(() => input.focus(), 50);
+  }
+
+  function closeModal(){
+    document.getElementById('modalOverlay').classList.add('hidden');
+    modalConfirmCallback = null;
+  }
+
+  function handleModalConfirm(){
+    const showingInput = !document.getElementById('modalInputField').classList.contains('hidden');
+    const value = showingInput ? parseInt(document.getElementById('modalInput').value, 10) : null;
+    const cb = modalConfirmCallback;
+    closeModal();
+    if(cb) cb(value);
+  }
+
+  // ---------- CAMERA SCANNER ----------
+  let scannerTargetId = null;
+  let scannerCallback = null;
+
+  function openScanner(targetInputId, afterScanCallback){
+    scannerTargetId = targetInputId;
+    scannerCallback = afterScanCallback || null;
+    document.getElementById('scannerOverlay').classList.remove('hidden');
+    if(typeof Html5Qrcode === 'undefined'){
+      showToast('Camera scanner library failed to load');
+      closeScanner();
+      return;
+    }
+    html5QrCode = new Html5Qrcode("qr-reader");
+    html5QrCode.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: 220 },
+      (decodedText) => {
+        if(scannerTargetId){
+          document.getElementById(scannerTargetId).value = decodedText;
+        }
+        closeScanner();
+        if(scannerCallback) scannerCallback();
+      },
+      () => { /* ignore per-frame scan errors */ }
+    ).catch(err => {
+      showToast('Camera not available: ' + err);
+      closeScanner();
+    });
+  }
+
+  function closeScanner(){
+    if(html5QrCode){
+      html5QrCode.stop().then(() => html5QrCode.clear()).catch(() => {});
+    }
+    document.getElementById('scannerOverlay').classList.add('hidden');
+  }
+
+  // ---------- ADMIN ----------
+  function renderAdmin(){
+    document.getElementById('allowSelfRegisterToggle').checked = !!settings.allowSelfRegister;
+
+    const usersBody = document.getElementById('usersTableBody');
+    usersBody.innerHTML = Object.entries(users).map(([uname, u]) => `
+      <tr>
+        <td>${escapeHtml(uname)}</td>
+        <td><span class="role-badge">${escapeHtml(u.role)}</span></td>
+        <td class="log-time">${formatTime(u.createdAt)}</td>
+        <td style="text-align:right;white-space:nowrap;">
+          <button class="btn btn-ghost btn-sm" onclick="toggleUserRole('${escapeAttr(uname)}')">${u.role === 'admin' ? 'Make user' : 'Make admin'}</button>
+          <button class="btn btn-danger-outline btn-sm" onclick="deleteUser('${escapeAttr(uname)}')" ${uname === currentUser ? 'disabled title="Cannot delete your own account"' : ''}>Delete</button>
+        </td>
+      </tr>
+    `).join('');
+
+    const logBody = document.getElementById('logTableBody');
+    const sorted = [...activityLog].sort((a,b) => new Date(b.time) - new Date(a.time));
+    logBody.innerHTML = sorted.map(entry => `
+      <tr>
+        <td class="log-time">${formatTime(entry.time)}</td>
+        <td>${escapeHtml(entry.user)}</td>
+        <td><span class="tag-pill tag-${entry.type}">${escapeHtml(entry.type)}</span> ${escapeHtml(entry.message)}</td>
+      </tr>
+    `).join('') || `<tr><td colspan="3" style="text-align:center;color:var(--ink-soft);padding:20px;">No activity yet</td></tr>`;
+  }
+
+  function toggleSelfRegister(){
+    settings.allowSelfRegister = document.getElementById('allowSelfRegisterToggle').checked;
+    saveSettings();
+    logActivity('register', `Self sign-up ${settings.allowSelfRegister ? 'enabled' : 'disabled'}`);
+    showToast('Setting updated');
+  }
+
+  async function adminCreateUser(){
+    const uname = document.getElementById('adminNewUsername').value.trim();
+    const pass = document.getElementById('adminNewPassword').value;
+    if(!uname || !pass){ showToast('Enter a username and password'); return; }
+    if(users[uname]){ showToast('That username already exists'); return; }
+    if(pass.length < 4){ showToast('Password must be at least 4 characters'); return; }
+
+    const passwordHash = await hashPassword(pass);
+    users[uname] = { passwordHash, role: 'user', createdAt: new Date().toISOString() };
+    saveUsers();
+    logActivity('register', `Admin created account for ${uname}`);
+    document.getElementById('adminNewUsername').value = '';
+    document.getElementById('adminNewPassword').value = '';
+    renderAdmin();
+    showToast('User created');
+  }
+
+  function toggleUserRole(uname){
+    if(!users[uname]) return;
+    users[uname].role = users[uname].role === 'admin' ? 'user' : 'admin';
+    saveUsers();
+    logActivity('register', `Changed ${uname}'s role to ${users[uname].role}`);
+    renderAdmin();
+  }
+
+  function deleteUser(uname){
+    if(uname === currentUser){ showToast('You cannot delete your own account'); return; }
+    openModal({
+      title: 'Delete user?',
+      message: `Delete user "${uname}"? This cannot be undone.`,
+      confirmText: 'Delete',
+      onConfirm: () => {
+        delete users[uname];
+        saveUsers();
+        logActivity('register', `Deleted user ${uname}`);
+        renderAdmin();
+        showToast('User deleted');
+      }
+    });
+  }
+
+  function exportData(){
+    const exportObj = {
+      pallets: data.pallets,
+      users: Object.fromEntries(Object.entries(users).map(([u,v]) => [u, { role: v.role, createdAt: v.createdAt }])),
+      activityLog,
+      settings,
+      exportedAt: new Date().toISOString()
+    };
+    const blob = new Blob([JSON.stringify(exportObj, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'pallet-tracker-export.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function clearAllData(){
+    openModal({
+      title: 'Clear all data?',
+      message: 'This will permanently delete ALL pallets, users, and logs on this device.',
+      confirmText: 'Continue',
+      onConfirm: () => {
+        openModal({
+          title: 'Are you absolutely sure?',
+          message: 'This cannot be undone.',
+          confirmText: 'Yes, delete everything',
+          onConfirm: () => {
+            localStorage.removeItem(USERS_KEY);
+            localStorage.removeItem(DATA_KEY);
+            localStorage.removeItem(LOG_KEY);
+            localStorage.removeItem(SETTINGS_KEY);
+            localStorage.removeItem(SESSION_KEY);
+            location.reload();
+          }
+        });
+      }
+    });
+  }
+
+  // ---------- UTIL ----------
+  function escapeHtml(str){
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function escapeAttr(str){ return String(str).replace(/'/g, "\\'"); }
+  function formatTime(iso){
+    if(!iso) return '';
+    const d = new Date(iso);
+    return d.toLocaleString();
+  }
+
+  // ---------- INIT ----------
+  (function init(){
+    switchAuthTab('signin');
+    const savedSession = localStorage.getItem(SESSION_KEY);
+    if(savedSession && users[savedSession]){
+      currentUser = savedSession;
+      enterApp(savedSession);
+    }
+    if(Object.keys(users).length === 0){
+      document.getElementById('signupHint').textContent = 'No accounts exist yet — create the first one to get started (it becomes the administrator).';
+    }
+  })();
 </script>
 
 </body>
